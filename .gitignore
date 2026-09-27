@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+build/
+dist/
+
+# Training outputs (only small final checkpoints in checkpoints/ are committed)
+runs/
+logs/
+videos/
+outputs/
+*.pt
+!checkpoints/*.pt
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
