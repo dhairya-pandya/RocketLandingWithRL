@@ -1,0 +1,10 @@
+name: L1
+description: Ship sways and drifts sideways
+start_offset_x: [-40, 40]
+start_altitude: [80, 150]
+start_vx: [-4, 4]
+start_vy: [-10, -2]
+start_theta_deg: [-4.5, 4.5]
+sway_amplitude: [0, 8]
+sway_frequency: [0.02, 0.06]
+drift_speed: [-1, 1]

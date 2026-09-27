@@ -1,0 +1,7 @@
+name: L0
+description: Static pad, no wind, start close above
+start_offset_x: [-20, 20]
+start_altitude: [60, 100]
+start_vx: [-2, 2]
+start_vy: [-8, -2]
+start_theta_deg: [-3, 3]
