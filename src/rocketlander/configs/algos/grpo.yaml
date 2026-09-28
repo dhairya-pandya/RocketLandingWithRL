@@ -10,7 +10,7 @@ clip_coef: 0.2
 max_grad_norm: 0.5
 advantage: outcome
 process_gamma: 0.99
-pretrain: none
+pretrain: none  # "bc_pid" clones the PID first; pair it with init_log_std: -2.0
 pretrain_steps: 200000
 pretrain_noise: 0.3
 pretrain_epochs: 10

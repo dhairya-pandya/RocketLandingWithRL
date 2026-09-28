@@ -52,7 +52,8 @@ Success rate on 100 held-out start states per level (seeds 10000–10099, never 
 Each agent is one seed. PPO, REINFORCE and GRPO learn from scratch for 5 M steps (6–8 minutes).
 Evolution strategies (ES) learn from scratch for 20 M steps (about 17 minutes; its simulation is
 batched, so steps are cheap). SAC and TD3 train for 1 M steps (15–21 minutes) and start from 50 k
-steps of noisy PID demonstrations in their replay buffer (see below). The checkpoints are in `checkpoints/`. What the table shows:
+steps of noisy PID demonstrations in their replay buffer (see below). The checkpoints are in
+`checkpoints/`. What the table shows:
 
 - **Randomization makes generalists.** The agent trained on L3, where wind, mass, thrust and engine
   lag change every episode, lands 95–100% on L0–L3: better than each level's own specialist, and
@@ -64,8 +65,10 @@ steps of noisy PID demonstrations in their replay buffer (see below). The checkp
 - **GRPO needs no critic.** It restarts 8 rollouts from the same simulator snapshot and scores each
   against its siblings, the way LLM post-training scores several answers to one prompt. It comes
   close to PPO on L0–L2 (100%, 89%, 86% against PPO's 97%, 97%, 94%). One score per 600-step
-  rollout is coarse credit, though, and it falls apart in wind (L3: 14%).
-- **Gradient-free evolution strategies are the surprise.** A 1.6k-parameter policy searched by
+  rollout is coarse credit, though, and it falls apart in wind (L3: 14%). Optionally
+  (`pretrain: bc_pid`), GRPO first behavior-clones the PID, like supervised fine-tuning before RL.
+  With a low sampling noise (`init_log_std: -2`) that reached 92% on L2 in 400 k steps.
+- **Gradient-free evolution strategies are the surprise.** A 1.5k-parameter policy searched by
   perturbing its weights (no gradients through the episode, no value function) lands 90–100% on
   L0–L2. The L2 agent also transfers well: 96% on L1 and 60% on the unseen, windy L3. It used a 4×
   larger step budget than PPO, but its batched simulation makes steps cheap.
