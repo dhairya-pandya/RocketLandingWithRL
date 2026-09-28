@@ -103,12 +103,18 @@ class Renderer:
         return dt if dt > 0 else FRAME_DT  # sim paused (outcome hold): effects keep playing
 
     def _emit_effects(self, frame: Frame, dt: float) -> None:
-        r, p, c = frame.rocket, frame.params, frame.controls
+        r = frame.rocket
         if frame.judgement.outcome is Outcome.CRASHED and not self._exploded:
             self.particles.explode(np.array([r.x, r.y]))
             self._exploded = True
         if self._exploded or frame.judgement.done:
             return
+        self._emit_engine(frame, dt)
+        corners = self.camera.to_world(np.array([[0, self.camera.height], [self.camera.width, 0]]))
+        self.particles.emit_wind(corners[0], corners[1], frame.wind_speed, dt)
+
+    def _emit_engine(self, frame: Frame, dt: float) -> None:
+        r, p, c = frame.rocket, frame.params, frame.controls
         if r.throttle > 0.02 and r.fuel > 0.0:
             exit_point, direction = scene.nozzle_geometry(r, p, c.gimbal if c else 0.0)
             self.particles.emit_flame(exit_point, direction, r.throttle, dt)
@@ -117,8 +123,6 @@ class Renderer:
             point = body_to_world(r, np.array([[side, p.length / 2 - 1.0]]))[0]
             outward = body_to_world(r, np.array([[side * 2, p.length / 2 - 1.0]]))[0] - point
             self.particles.emit_rcs(point, outward / np.linalg.norm(outward), dt)
-        corners = self.camera.to_world(np.array([[0, self.camera.height], [self.camera.width, 0]]))
-        self.particles.emit_wind(corners[0], corners[1], frame.wind_speed, dt)
 
     def _hide_particles_inside_hull(self, deck) -> None:
         pos = self.particles.p.pos

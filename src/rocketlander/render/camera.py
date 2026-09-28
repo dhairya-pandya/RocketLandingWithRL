@@ -19,9 +19,11 @@ class Camera:
         self._initialised = False
 
     def target(self, rocket_xy: np.ndarray, deck_xy: np.ndarray) -> tuple[np.ndarray, float]:
-        """Centre and scale that frame both the rocket and the deck."""
-        center = (rocket_xy + deck_xy) / 2.0
-        span = np.abs(rocket_xy - deck_xy) * MARGIN + 40.0  # metres; 40 keeps the ship visible
+        """Centre and scale that frame the deck and one rocket, or several (shape (n, 2))."""
+        points = np.vstack([np.atleast_2d(rocket_xy), deck_xy])
+        low, high = points.min(axis=0), points.max(axis=0)
+        center = (low + high) / 2.0
+        span = (high - low) * MARGIN + 40.0  # metres; 40 keeps the ship visible
         scale = min(self.width / span[0], self.height / span[1])
         return center, float(np.clip(scale, MIN_SCALE, MAX_SCALE))
 

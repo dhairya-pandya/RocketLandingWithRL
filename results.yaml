@@ -1,0 +1,49 @@
+# What `uv run rl-compare --report results.yaml` compares. It writes `out` and the figures.
+# run: training directory with metrics.csv (runs/ is not in git; missing runs are skipped).
+out: RESULTS.md
+figures: media/results
+levels: [L0, L1, L2, L3, L4]
+episodes: 100
+workers: 8
+agents:
+  - {name: Random, agent: random}
+  - {name: PID, agent: pid}
+  - {name: REINFORCE on L0, agent: checkpoints/reinforce_L0.pt, run: runs/final_reinforce_L0, trained_on: L0}
+  - {name: REINFORCE on L1, agent: checkpoints/reinforce_L1.pt, run: runs/all_reinforce_L1, trained_on: L1}
+  - {name: REINFORCE on L2, agent: checkpoints/reinforce_L2.pt, run: runs/all_reinforce_L2, trained_on: L2}
+  - {name: REINFORCE on L3, agent: checkpoints/reinforce_L3.pt, run: runs/all_reinforce_L3, trained_on: L3}
+  - {name: REINFORCE on L4, agent: checkpoints/reinforce_L4.pt, run: runs/all_reinforce_L4, trained_on: L4}
+  - {name: PPO on L0, agent: checkpoints/ppo_L0.pt, run: runs/final_ppo_L0, trained_on: L0}
+  - {name: PPO on L1, agent: checkpoints/ppo_L1.pt, run: runs/final_ppo_L1, trained_on: L1}
+  - {name: PPO on L2, agent: checkpoints/ppo_L2.pt, run: runs/final_ppo_L2, trained_on: L2}
+  - {name: PPO on L3, agent: checkpoints/ppo_L3.pt, run: runs/all_ppo_L3, trained_on: L3}
+  - {name: PPO on L4, agent: checkpoints/ppo_L4.pt, run: runs/phase6_ppo_L4, trained_on: L4}
+  - {name: PPO mix L0-L4, agent: checkpoints/ppo_mix.pt, run: runs/final_ppo_mix, trained_on: L4}
+  - {name: PPO curriculum, agent: checkpoints/ppo_curriculum.pt, run: runs/final_ppo_curriculum, trained_on: L4}
+  - {name: SAC on L0, agent: checkpoints/sac_L0.pt, run: runs/final_sac_L0, trained_on: L0}
+  - {name: SAC on L1, agent: checkpoints/sac_L1.pt, run: runs/final_sac_L1, trained_on: L1}
+  - {name: SAC on L2, agent: checkpoints/sac_L2.pt, run: runs/final_sac_L2, trained_on: L2}
+  - {name: SAC on L3, agent: checkpoints/sac_L3.pt, run: runs/final_sac_L3, trained_on: L3}
+  - {name: SAC on L4, agent: checkpoints/sac_L4.pt, run: runs/final_sac_L4, trained_on: L4}
+  - {name: TD3 on L0, agent: checkpoints/td3_L0.pt, run: runs/final_td3_L0, trained_on: L0}
+  - {name: TD3 on L1, agent: checkpoints/td3_L1.pt, run: runs/final_td3_L1, trained_on: L1}
+  - {name: TD3 on L2, agent: checkpoints/td3_L2.pt, run: runs/final_td3_L2, trained_on: L2}
+  - {name: TD3 on L3, agent: checkpoints/td3_L3.pt, run: runs/final_td3_L3, trained_on: L3}
+  - {name: TD3 on L4, agent: checkpoints/td3_L4.pt, run: runs/final_td3_L4, trained_on: L4}
+  - {name: GRPO on L0, agent: checkpoints/grpo_L0.pt, run: runs/final_grpo_L0, trained_on: L0}
+  - {name: GRPO on L1, agent: checkpoints/grpo_L1.pt, run: runs/final_grpo_L1, trained_on: L1}
+  - {name: GRPO on L2, agent: checkpoints/grpo_L2.pt, run: runs/final_grpo_L2, trained_on: L2}
+  - {name: GRPO on L3, agent: checkpoints/grpo_L3.pt, run: runs/final_grpo_L3, trained_on: L3}
+  - {name: GRPO on L4, agent: checkpoints/grpo_L4.pt, run: runs/final_grpo_L4, trained_on: L4}
+  - {name: ES on L0, agent: checkpoints/es_L0.pt, run: runs/final_es_L0, trained_on: L0}
+  - {name: ES on L1, agent: checkpoints/es_L1.pt, run: runs/final_es_L1, trained_on: L1}
+  - {name: ES on L2, agent: checkpoints/es_L2.pt, run: runs/final_es_L2, trained_on: L2}
+  - {name: ES on L3, agent: checkpoints/es_L3.pt, run: runs/final_es_L3, trained_on: L3}
+  - {name: ES on L4, agent: checkpoints/es_L4.pt, run: runs/final_es_L4, trained_on: L4}
+robustness_level: L2
+robustness_episodes: 50
+robustness_agents: [PID, ES on L2, PPO on L3, PPO mix L0-L4]
+races:
+  - {level: L0, seed: 1, agents: [PID, REINFORCE on L0, PPO on L0, SAC on L0, GRPO on L0, ES on L0]}
+  - {level: L3, seed: 4, agents: [PID, PPO on L3, ES on L2, SAC on L2]}
+  - {level: L4, seed: 2, agents: [PID, PPO mix L0-L4, PPO on L4, ES on L3]}

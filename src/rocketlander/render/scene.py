@@ -73,6 +73,7 @@ def draw_rocket(
     rocket: RocketState,
     params: RocketParams,
     controls: Controls | None,
+    color: tuple[int, int, int] = ROCKET,
 ) -> None:
     half_l, half_w = params.length / 2, params.width / 2
     body = np.array([[-half_w, -half_l], [half_w, -half_l], [half_w, half_l], [-half_w, half_l]])
@@ -92,7 +93,7 @@ def draw_rocket(
     for hip, tip in zip(hips, to_px(params.leg_tips_body()), strict=True):
         pygame.draw.line(surface, LEG, hip, tip, max(2, int(0.4 * camera.scale)))
 
-    pygame.draw.polygon(surface, ROCKET, to_px(body))
+    pygame.draw.polygon(surface, color, to_px(body))
     pygame.draw.polygon(surface, ROCKET_DARK, to_px(nose))
     stripe = np.array(
         [[-half_w, half_l - 4], [half_w, half_l - 4], [half_w, half_l - 3], [-half_w, half_l - 3]]

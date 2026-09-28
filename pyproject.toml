@@ -13,6 +13,7 @@ dependencies = [
     "imageio>=2.37.4",
     "torch>=2.14.0",
     "tensorboard>=2.21.0",
+    "matplotlib>=3.9",
 ]
 
 [dependency-groups]
@@ -60,3 +61,4 @@ rl-record = "rocketlander.cli.record:main"
 rl-train = "rocketlander.cli.train:main"
 rl-eval = "rocketlander.cli.evaluate:main"
 rl-robust = "rocketlander.cli.robustness:main"
+rl-compare = "rocketlander.cli.compare:main"
