@@ -6,9 +6,10 @@ on a laptop CPU, and compared against a hand-written PID controller.
 
 ![A PPO agent landing on the rolling drone ship (level L2)](media/ppo_landing_L2.gif)
 
-Status: **Phase 5 done**: environment, viewer, baselines, and six learning agents (REINFORCE, PPO,
-SAC, TD3, GRPO, evolution strategies) trained on a laptop CPU. Curriculum, domain randomization and a
-full evaluation suite come next.
+Status: **Phase 6 done**: environment, viewer, baselines, six learning agents (REINFORCE, PPO,
+SAC, TD3, GRPO, evolution strategies), training on level mixes and curricula, and an evaluation
+suite with confidence intervals, multi-seed statistics and robustness sweeps. A comparison viewer
+and a full results report come next.
 
 ## Results so far
 
@@ -22,7 +23,9 @@ Success rate on 100 held-out start states per level (seeds 10000–10099, never 
 | PPO, trained on L1 | 42% | 97% | 0% | 0% | 0% |
 | PPO, trained on L2 | 46% | 85% | 94% | 55% | 10% |
 | **PPO, trained on L3** | **100%** | **99%** | **99%** | **95%** | 10% |
-| PPO, trained on L4 | 0% | 0% | 4% | 12% | 46% |
+| PPO, trained on L4 (10 M steps) | 0% | 0% | 0% | 8% | 57% |
+| **PPO, mix of L0–L4 (10 M steps)** | **100%** | **100%** | **96%** | 60% | 53% |
+| PPO, curriculum L0 → L4 (10 M steps) | 100% | 100% | 100% | 70% | 65% |
 | REINFORCE, trained on L0 | 100% | 87% | 0% | 0% | 0% |
 | REINFORCE, trained on L1 | 90% | 50% | 0% | 0% | 0% |
 | REINFORCE, trained on L2 | 0% | 0% | 18% | 8% | 1% |
@@ -49,7 +52,10 @@ Success rate on 100 held-out start states per level (seeds 10000–10099, never 
 | ES, trained on L3 | 39% | 81% | 63% | 64% | 27% |
 | ES, trained on L4 | 0% | 0% | 0% | 0% | 0% |
 
-Each agent is one seed. PPO, REINFORCE and GRPO learn from scratch for 5 M steps (6–8 minutes).
+Each agent is one seed (seed 1). With 100 episodes per cell, a success rate is known to within
+about ±10 points (95% Wilson interval; `rl-eval` prints it), and seed-to-seed differences are
+larger still: see [How sure are these numbers?](#how-sure-are-these-numbers). PPO, REINFORCE and
+GRPO learn from scratch for 5 M steps (6–8 minutes) unless marked 10 M (15–20 minutes).
 Evolution strategies (ES) learn from scratch for 20 M steps (about 17 minutes; its simulation is
 batched, so steps are cheap). SAC and TD3 train for 1 M steps (15–21 minutes) and start from 50 k
 steps of noisy PID demonstrations in their replay buffer (see below). The checkpoints are in
@@ -58,9 +64,16 @@ steps of noisy PID demonstrations in their replay buffer (see below). The checkp
 - **Randomization makes generalists.** The agent trained on L3, where wind, mass, thrust and engine
   lag change every episode, lands 95–100% on L0–L3: better than each level's own specialist, and
   more than twice the PID in wind. Agents trained on one fixed setting overfit to it.
-- **L4 (far, fast booster return) is still hard.** The best learned agent matches the PID at about
-  45%. Fine-tuning the L2 agent on L3 and L4 did worse than training from scratch (55% and 4%), because
-  its exploration noise had already collapsed.
+- **Mixing levels makes the best all-rounder.** One PPO agent that sees every level from the
+  start (`--level mix:L0,L1,L2,L3,L4`) lands 100% on L0–L1 in each of four seeds, 81–99% on L2
+  and 53–75% on L4. Trained on L4 alone, the same network lands 57% of booster returns but
+  forgets how to land from a gentle start (0% on L0–L2). A curriculum that unlocks each level at 80%
+  success gave the best single runs (up to 100 / 100 / 100 / 75 / 74%) but stalled at L2 on one of
+  five seeds.
+- **L4 (far, fast booster return) is still the hardest.** At 10 M steps PPO reaches 57% (trained
+  on L4 alone) to 70% (IQM of the mix over seeds), against the PID's 45%. Fine-tuning the L2 agent
+  on L3 and L4 did worse than training from scratch (55% and 4%), because its exploration noise had
+  already collapsed.
 - **PPO beats REINFORCE everywhere beyond L0**, on the same network, normalization and step budget.
 - **GRPO needs no critic.** It restarts 8 rollouts from the same simulator snapshot and scores each
   against its siblings, the way LLM post-training scores several answers to one prompt. It comes
@@ -83,6 +96,44 @@ steps of noisy PID demonstrations in their replay buffer (see below). The checkp
 
 ![A PPO agent landing in a 7.7 m/s crosswind (level L3)](media/ppo_landing_L3_wind.gif)
 
+![One PPO agent trained on a mix of all levels landing a booster return that starts 770 m up
+and falling at 54 m/s (level L4)](media/ppo_landing_L4.gif)
+
+## How sure are these numbers?
+
+Reinforcement learning results vary a lot from seed to seed, so Phase 6 trained each PPO recipe
+several times (10 M steps each) and reports the **interquartile mean** (IQM, the mean of the
+middle half of the runs) with a bootstrap 95% interval:
+
+| PPO recipe | seeds | L0 | L1 | L2 | L3 | L4 success per seed | L4 IQM (95% CI) |
+|---|---|---|---|---|---|---|---|
+| L4 only | 3 | 1% | 17% | 15% | 13% | 57, 44, 69% | 57% (44–69) |
+| curriculum L0 → L4 | 5 | 100% | 100% | 98% | 62% | 65, 9, 74, 42, 69% | 59% (20–72) |
+| mix of L0–L4 | 4 | 100% | 100% | 94% | 62% | 53, 72, 75, 68% | **70% (53–75)** |
+
+On L4 alone the intervals overlap, so these recipes cannot be ranked there with this many seeds.
+The mix is clearly better overall: every one of its runs lands at least 53% on every level, while
+the L4-only runs forget the easy levels and one curriculum run stalled. The shipped checkpoints
+are the seed-1 runs, so no lucky seed was picked.
+
+**Robustness.** `rl-robust` pins one physical parameter to values beyond what the agent trained on
+and measures success again. On L2 (which has no wind and nominal physics), 50 episodes per value:
+
+| Agent | lag 0.4 s | mass ×0.8 | mass ×1.2 | thrust ×0.8 | wind 8 m/s | wind 12 m/s |
+|---|---|---|---|---|---|---|
+| PID | 16% | 0% | 20% | 40% | 12% | 0% |
+| ES, trained on L2 | 90% | 92% | 74% | 64% | 46% | 0% |
+| PPO, trained on L3 | **100%** | **100%** | 64% | 20% | **100%** | 10% |
+| PPO, mix of L0–L4 | 86% | 0% | 12% | 2% | 36% | 0% |
+
+The PID computes its throttle from the *nominal* mass and thrust, so a rocket only 10% lighter gets
+too much thrust, hovers and runs out of fuel. That and the wind are why it drops to 45% on L3. The
+L3 specialist, trained with randomized physics and wind in every episode, handles more than twice
+its training engine lag and wind at the edge of its range. The mix agent spends only two fifths of
+its episodes on randomized levels and is a weaker controller there (60% on L3), so it is less
+robust than the specialist: robustness comes from what an agent trained on, not from the
+algorithm.
+
 ## Train your own
 
 ```bash
@@ -90,10 +141,20 @@ uv run rl-train --algo ppo --level L2 --seed 1          # ~6 min on a laptop CPU
 uv run rl-train --algo sac --level L0 --seed 1          # SAC / TD3 warm up on PID demonstrations
 uv run rl-train --algo grpo --level L1 --seed 1         # critic-free, group-relative
 uv run rl-train --algo es --level L2 --seed 1           # gradient-free, ~17 min
+uv run rl-train --algo ppo --level mix:L0,L1,L2,L3,L4 --total-steps 10000000
+uv run rl-train --algo ppo --level curriculum:L0,L1,L2,L3,L4 --total-steps 10000000
 uv run rl-eval --agent runs/ppo_L2_s1/model.pt --level L2
+uv run rl-eval --agent runs/*/model.pt --level L4       # several seeds: IQM with a 95% interval
+uv run rl-robust --agent checkpoints/ppo_L3.pt --level L2 --param wind_mean
 uv run rl-watch --agent runs/ppo_L2_s1/model.pt --level L2
 tensorboard --logdir runs                               # learning curves
 ```
+
+`--level` also accepts `mix:<levels>` (every episode draws one of the listed levels) and
+`curriculum:<levels>` (start with the first level, unlock the next at 80% success over 100
+episodes, keep sampling the unlocked ones); both evaluate on the last level listed. PPO,
+REINFORCE, SAC and TD3 support them. GRPO and ES train on one level. Robustness sweep values live
+in `src/rocketlander/configs/robustness.yaml`.
 
 Hyperparameters live in `src/rocketlander/configs/algos/<algo>.yaml`. `rl-train`
 logs to TensorBoard and `runs/<name>/metrics.csv`, evaluates on held-out seeds during training,
@@ -180,9 +241,10 @@ it crashed.
 | L3 | Wind gusts, randomized mass, thrust and engine lag | 1.5–1.7 t | 60 s |
 | L4 | Booster return: far start at high speed | 2.8–3.2 t | 100 s |
 
-Levels are YAML files in `src/rocketlander/configs/levels/` (angles in degrees, `_deg` keys);
-add a file to add a level. The PID controller is tuned for nominal physics, so L3's randomized
-rocket and wind are where it struggles: that gap is what the learning agents have to close.
+Levels are YAML files in `src/rocketlander/configs/levels/` (angles in degrees, `_deg` keys); add a
+file to add a level. `reset(options={"level": "L3"})` switches level between episodes, which is how
+mixes and curricula work. The PID controller is tuned for nominal physics, so L3's randomized rocket
+and wind are where it struggles: that gap is what the learning agents have to close.
 
 ## Why the reward looks the way it does
 
