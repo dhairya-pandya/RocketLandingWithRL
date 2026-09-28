@@ -51,10 +51,12 @@ their replay buffer (see below). The checkpoints are in `checkpoints/`. What the
 - **PPO beats REINFORCE everywhere beyond L0**, on the same network, normalization and step budget.
 - **Off-policy agents need help to explore here.** From scratch, SAC and TD3 never landed once in
   1 M steps: random warm-up actions only produce hard crashes, and both settle into hovering until
-  the fuel runs out. Seeding the replay buffer with noisy PID flights (which only an off-policy
-  learner can use) fixes L0–L1: SAC reaches 98% on L0 in about 500 k steps, fewer than PPO needs.
-  From L2 on they fall well behind PPO, and wind (L3) defeats them. That is where on-policy PPO's
-  steady exploration wins.
+  the fuel runs out. Seeding the replay buffer with noisy PID flights (data an off-policy learner can
+  replay directly) makes L0 work: SAC lands on all 20 evaluation starts by about 500 k environment
+  steps, against about 1 M for PPO. It runs at about 1/18 of PPO's steps per second, though, so it
+  is slower in wall-clock time. From L1 on (TD3 60%, SAC 87%) they trail PPO, and wind (L3) defeats
+  them. That is where on-policy PPO's steady exploration wins. SAC and TD3 use γ = 0.99: the
+  demonstrations supply the long-range signal, and 0.995 scored worse in prototyping.
 
 ![A PPO agent landing in a 7.7 m/s crosswind (level L3)](media/ppo_landing_L3_wind.gif)
 
