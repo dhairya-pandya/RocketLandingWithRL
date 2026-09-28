@@ -17,16 +17,19 @@ Success rate on 100 held-out start states per level (seeds 10000–10099, never 
 | Agent | L0 | L1 | L2 | L3 | L4 |
 |---|---|---|---|---|---|
 | Random | 0% | 0% | 0% | 0% | 0% |
-| PID (hand-written) | 100% | 100% | 98% | 44% | 38% |
+| PID (hand-written) | 100% | 100% | 98% | 45% | 45% |
 | REINFORCE, trained on L0 | 100% | 87% | 0% | 0% | 0% |
 | PPO, trained on L0 | 97% | 52% | 0% | 0% | 0% |
-| PPO, trained on L1 | 99% | 89% | 0% | 0% | 0% |
-| PPO, trained on L2 | 87% | 84% | 85% | 26% | 33% |
+| PPO, trained on L1 | 42% | 97% | 0% | 0% | 0% |
+| PPO, trained on L2 | 46% | 85% | 94% | 55% | 10% |
 
-Each agent is one seed, trained for 5 M steps; the checkpoints are in `checkpoints/`. PPO lands
-much more softly than the PID (about 0.5 m/s against about 1.5 m/s), and the L2 agent carries over to
-the unseen L3 and L4 almost as well as the PID. REINFORCE gets there too on L0, but it needs about
-4.5 M steps before its first landings, against about 1 M for PPO.
+Each agent is one seed, trained for 5 M steps (about 6 minutes); the checkpoints are in
+`checkpoints/`. On its own level each PPO agent lands 94–97% of the time, and more softly than the
+PID (0.97 m/s against 1.43 m/s on L2). The L2 agent even beats the PID on the unseen, windy L3.
+Transfer is uneven, though: agents trained without a rolling deck never saw those observations
+change and fail on L2+, and the L2 agent has unlearned the static pad of L0. Training across levels
+(curriculum and domain randomization) is Phase 6. REINFORCE also masters L0, but only after about
+4.5 M steps, against about 1 M for PPO.
 
 ## Train your own
 
@@ -110,16 +113,17 @@ it crashed.
 | Reward | Progress shaping `Φ(s') − Φ(s)` (closer, slower, more upright is better; `Φ` is kept at touchdown), fuel and time costs, +100 plus a softness bonus for landing, a deck crash graded by impact speed (−20 − 8·v, down to −100), and −100 for missing the ship, leaving the flight box or running out of fuel. `reward_mode="sparse"` keeps only the terminal reward. |
 | Task reward | `info["task_reward"]` is the unshaped reward (terminal reward minus fuel and time costs). Evaluations and comparisons use it. |
 | Snapshots | `get_state()` / `set_state()` / `reset(options={"state": s})` restore the env exactly, including the random number generator. |
+| Checkpoints | `torch.load(..., weights_only=True)`: loading a checkpoint never runs pickled code. Training seeds are refused if they would reach the evaluation seeds. |
 
 ## Levels
 
-| Level | What changes | Fuel |
-|---|---|---|
-| L0 | Static pad, no wind, start close above | 1.0–1.2 t |
-| L1 | Ship sways and drifts | 1.3–1.5 t |
-| L2 | Ship also rolls and heaves | 1.5–1.7 t |
-| L3 | Wind gusts, randomized mass, thrust and engine lag | 1.5–1.7 t |
-| L4 | Booster return: far start at high speed | 2.8–3.2 t |
+| Level | What changes | Fuel | Time limit |
+|---|---|---|---|
+| L0 | Static pad, no wind, start close above | 1.0–1.2 t | 40 s |
+| L1 | Ship sways and drifts | 1.3–1.5 t | 60 s |
+| L2 | Ship also rolls and heaves | 1.5–1.7 t | 60 s |
+| L3 | Wind gusts, randomized mass, thrust and engine lag | 1.5–1.7 t | 60 s |
+| L4 | Booster return: far start at high speed | 2.8–3.2 t | 100 s |
 
 Levels are YAML files in `src/rocketlander/configs/levels/` (angles in degrees, `_deg` keys);
 add a file to add a level. The PID controller is tuned for nominal physics, so L3's randomized
@@ -137,8 +141,9 @@ it, each a textbook lesson:
    with γ < 1 it pays a small bonus for every step spent alive. Keeping `Φ` at touchdown and grading
    deck crashes by impact speed gives the learner a slope toward "slower is better".
 3. **Limited fuel.** With a 5 t tank the rocket could hover past the time limit, and a time-limit
-   ending carries no penalty. Realistic tanks (about 30 s of hover on L0) turn hovering into an
-   observable "out of fuel" failure.
+   ending carries no penalty. Every level's tank now runs dry before its time limit, so hovering
+   ends in an observable "out of fuel" failure. Closing this on L1–L2 as well raised PPO from
+   89% to 97% on L1 and from 85% to 94% on L2.
 
 ## Development
 

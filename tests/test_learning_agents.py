@@ -45,6 +45,7 @@ def test_checkpoint_round_trip_gives_identical_actions(tmp_path):
     obs = np.random.default_rng(0).normal(size=(5, 11)).astype(np.float32)
     assert np.array_equal(agent.act(obs), loaded.act(obs))
     assert meta["algo"] == "ppo" and meta["level"] == "L0" and meta["config"]["gamma"] == 0.999
+    torch.load(tmp_path / "model.pt", weights_only=True)  # no pickled objects: safe to load
 
 
 def test_eval_seeds_are_held_out_from_training_seeds():

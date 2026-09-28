@@ -33,6 +33,7 @@ def main(argv: list[str] | None = None) -> None:
     init_agent = load_checkpoint(args.init)[0] if args.init else None
     if init_agent is not None:
         init_agent.train()
+        init_agent.obs_rms.soften(max_count=1e4)  # let the stats adapt to the new level
 
     logger = Logger(run_dir, verbose=not args.quiet)
     (run_dir / "config.yaml").write_text(yaml.safe_dump(vars(config), sort_keys=False))

@@ -18,3 +18,4 @@ wind_volatility: [0.5, 2]
 mass_scale: [0.9, 1.1]
 thrust_scale: [0.9, 1.1]
 engine_lag: [0, 0.15]
+max_seconds: 60

@@ -22,14 +22,20 @@ class RunningMeanStd:
         self.var = m2 / total
         self.count = total
 
+    def soften(self, max_count: float) -> None:
+        """Cap the sample count so new data (e.g. a new level when fine-tuning) moves the stats."""
+        self.count = min(self.count, max_count)
+
     def normalize(self, x: np.ndarray, clip: float = 10.0) -> np.ndarray:
         return np.clip((x - self.mean) / np.sqrt(self.var + 1e-8), -clip, clip)
 
     def state_dict(self) -> dict:
-        return {"mean": self.mean, "var": self.var, "count": self.count}
+        """Plain lists and floats, so checkpoints load with torch.load(weights_only=True)."""
+        return {"mean": self.mean.tolist(), "var": self.var.tolist(), "count": float(self.count)}
 
     def load_state_dict(self, state: dict) -> None:
-        self.mean, self.var, self.count = state["mean"], state["var"], state["count"]
+        self.mean, self.var = np.array(state["mean"]), np.array(state["var"])
+        self.count = state["count"]
 
 
 class RewardScaler:

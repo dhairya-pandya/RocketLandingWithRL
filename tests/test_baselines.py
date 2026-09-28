@@ -33,3 +33,12 @@ def test_task_return_ranks_landing_above_hovering():
     pid = evaluate(PIDAgent(), "L0", SEEDS[:20])
     assert hover.success_rate == 0.0 and pid.success_rate == 1.0
     assert pid.mean_task_return > hover.mean_task_return
+
+
+@pytest.mark.parametrize("level", ["L0", "L1", "L2", "L3", "L4"])
+def test_hovering_never_outlasts_the_time_limit(level):
+    """The tank runs dry (or wind blows the rocket away) before the unpenalized time limit."""
+    summary = evaluate(HoverAgent(), level, SEEDS[:10])
+    assert "time limit" not in summary.reasons
+    assert set(summary.reasons) <= {"out of fuel", "out of bounds"}
+    assert summary.mean_task_return < evaluate(PIDAgent(), level, SEEDS[:10]).mean_task_return

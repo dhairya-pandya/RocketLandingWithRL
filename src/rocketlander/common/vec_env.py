@@ -9,6 +9,7 @@ from typing import Any
 import numpy as np
 
 from rocketlander.envs.rocket_env import RocketLanderEnv
+from rocketlander.evaluation import EVAL_SEEDS
 
 
 @dataclass
@@ -23,6 +24,10 @@ class VecStep:
 
 class VecEnv:
     def __init__(self, make_env: Callable[[], RocketLanderEnv], n: int, seed: int) -> None:
+        if seed + n > min(EVAL_SEEDS):
+            raise ValueError(
+                f"Training seeds {seed}..{seed + n - 1} would reach the evaluation seeds"
+            )
         self.envs = [make_env() for _ in range(n)]
         self.seed = seed
 

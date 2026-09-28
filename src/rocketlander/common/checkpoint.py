@@ -40,7 +40,7 @@ def save_checkpoint(path: Path, agent: ActorCritic, algo: str, config: Any, **me
 
 def load_checkpoint(path: Path) -> tuple[ActorCritic, dict[str, Any]]:
     """The agent (ready to act) and the checkpoint's metadata."""
-    data = torch.load(path, weights_only=False)
+    data = torch.load(path, weights_only=True)  # refuses pickled code from untrusted files
     agent = ActorCritic(**data["architecture"])
     agent.load_state_dict(data["state_dict"])
     agent.load_extra_state(data["extra_state"])

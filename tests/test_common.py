@@ -51,3 +51,19 @@ def test_gaussian_policy_log_prob_matches_the_formula():
 def test_mlp_output_gain_keeps_initial_actions_small():
     net = mlp([11, 64, 64, 3], output_gain=0.01)
     assert net(torch.randn(100, 11)).abs().max().item() < 0.1
+
+
+def test_vec_env_refuses_seeds_that_reach_the_eval_seeds():
+    with pytest.raises(ValueError, match="evaluation seeds"):
+        VecEnv(lambda: RocketLanderEnv(level="L0"), n=32, seed=9_980)
+
+
+def test_fine_tuning_lets_the_normalizer_adapt_to_new_features():
+    rms = RunningMeanStd((2,))
+    rms.update(np.column_stack([np.random.default_rng(0).normal(size=10_000), np.zeros(10_000)]))
+    rms.count = 5e6  # as after a long run on a level where feature 1 never varied
+    rms.soften(max_count=1e4)
+    new_level = np.random.default_rng(1).normal(0.0, 0.7, size=(20_000, 2))
+    for batch in np.split(new_level, 20):
+        rms.update(batch)
+    assert rms.var[1] > 0.1
