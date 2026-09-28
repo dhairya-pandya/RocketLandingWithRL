@@ -6,14 +6,16 @@ on a laptop CPU, and compared against a hand-written PID controller.
 
 ![A PPO agent landing on the rolling drone ship (level L2)](media/ppo_landing_L2.gif)
 
-Status: **Phase 6 done**: environment, viewer, baselines, six learning agents (REINFORCE, PPO,
-SAC, TD3, GRPO, evolution strategies), training on level mixes and curricula, and an evaluation
-suite with confidence intervals, multi-seed statistics and robustness sweeps. A comparison viewer
-and a full results report come next.
+Status: **complete (Phase 7)**: environment, viewer, baselines, six learning agents
+(REINFORCE, PPO, SAC, TD3, GRPO, evolution strategies), training on level mixes and curricula, an
+evaluation suite with confidence intervals and robustness sweeps, a side-by-side comparison viewer,
+and a generated results report: **[RESULTS.md](RESULTS.md)**.
 
-## Results so far
+## Results
 
-Success rate on 100 held-out start states per level (seeds 10000–10099, never used in training):
+Success rate on 100 held-out start states per level (seeds 10000–10099, never used in training).
+[RESULTS.md](RESULTS.md) has the same table with a 95% interval on every cell, learning curves
+(success against steps and against wall-clock time), robustness plots and races:
 
 | Agent | L0 | L1 | L2 | L3 | L4 |
 |---|---|---|---|---|---|
@@ -206,6 +208,22 @@ The mini-plots show the agent's actions, its reward per step and, for agents wit
 value estimate V(s). Any script can also render through Gymnasium:
 `RocketLanderEnv(level="L2", render_mode="human")` or `render_mode="rgb_array"`.
 
+## Compare agents side by side
+
+```bash
+uv run rl-compare --viewer --agent pid checkpoints/ppo_L3.pt checkpoints/es_L2.pt --level L3 --seed 4
+uv run rl-compare --agent pid checkpoints/ppo_mix.pt --level L4 --seed 2 --record videos/race.gif
+uv run rl-compare --report results.yaml     # rebuilds RESULTS.md and media/results/ (~10 min)
+```
+
+Every agent flies the same start state, ship motion and wind, drawn as colour-coded rockets with
+their trails and a live legend; a rocket that lands rides along with the deck. Space pauses, N
+starts the next seed. The report evaluates every agent listed in `results.yaml` on every level in
+parallel processes, plots learning curves from `runs/<name>/metrics.csv` when those exist, and keeps
+the "Lessons learned" section of RESULTS.md when it is rebuilt.
+
+![PID, PPO, ES and SAC flying the same windy start (level L3)](media/results/race_L3_seed4.gif)
+
 ## The environment
 
 **Physics.** The rocket is a 2D rigid body (`x, y, vx, vy, θ, ω`, fuel) integrated with
@@ -266,7 +284,7 @@ it, each a textbook lesson:
 
 ```bash
 uv run pytest                 # fast tests
-uv run pytest -m slow         # learning tests (later phases)
+uv run pytest -m slow         # learning tests: PPO, SAC, GRPO and ES must learn to land on L0
 uv run ruff check . && uv run ruff format --check .
 ```
 
