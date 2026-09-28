@@ -1,0 +1,20 @@
+name: L4
+description: "Booster return: far start at high speed"
+start_offset_x: [-250, 250]
+start_altitude: [500, 900]
+start_vx: [-25, 25]
+start_vy: [-60, -30]
+start_theta_deg: [-11, 11]
+sway_amplitude: [0, 10]
+sway_frequency: [0.02, 0.06]
+drift_speed: [-1.5, 1.5]
+heave_amplitude: [0, 1.5]
+heave_frequency: [0.05, 0.12]
+roll_amplitude_deg: [0, 5]
+roll_frequency: [0.05, 0.12]
+wind_mean: [-8, 8]
+wind_volatility: [0.5, 2]
+mass_scale: [0.9, 1.1]
+thrust_scale: [0.9, 1.1]
+engine_lag: [0, 0.15]
+max_seconds: 60

@@ -1,0 +1,14 @@
+name: L2
+description: Ship also rolls and heaves
+start_offset_x: [-50, 50]
+start_altitude: [100, 200]
+start_vx: [-5, 5]
+start_vy: [-12, -2]
+start_theta_deg: [-6, 6]
+sway_amplitude: [0, 8]
+sway_frequency: [0.02, 0.06]
+drift_speed: [-1, 1]
+heave_amplitude: [0, 1]
+heave_frequency: [0.05, 0.12]
+roll_amplitude_deg: [0, 4]
+roll_frequency: [0.05, 0.12]
