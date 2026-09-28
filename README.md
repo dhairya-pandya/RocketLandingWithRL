@@ -43,8 +43,8 @@ uv run rl-record --agent pid --level L2 --seed 3 --out videos/landing.gif
 | Keys | `rl-play` | `rl-watch` |
 |---|---|---|
 | W / S | throttle up / down (sticky) | |
-| A / D | swing the nozzle (gimbal) | |
-| Q / E | side thrusters (RCS) | |
+| A / D | lean left / right (engine gimbal) | |
+| Q / E | lean left / right (side thrusters, RCS) | |
 | R / N | restart / new start position | N: next episode |
 | Space | | pause |
 | F V T P H | toggle force arrows, velocity, trail, plots, HUD | same |

@@ -83,13 +83,16 @@ class ParticleSystem:
         life = self.rng.uniform(0.5, 1.5, n)
         self._add(center + self.rng.normal(0.0, 1.0, (n, 2)), vel, life, np.full(n, 1.2), SPARK)
 
+    def remove(self, mask: np.ndarray) -> None:
+        keep = ~mask
+        self.p = Particles(*(getattr(self.p, f)[keep] for f in Particles.__dataclass_fields__))
+
     def update(self, dt: float, gravity: float = 9.81) -> None:
         p = self.p
         p.vel[:, 1] -= gravity * 0.3 * dt  # hot gas rises less than debris falls
         p.pos += p.vel * dt
         p.life -= dt
-        alive = p.life > 0.0
-        self.p = Particles(*(getattr(p, f)[alive] for f in Particles.__dataclass_fields__))
+        self.remove(p.life <= 0.0)
 
     def fade(self) -> np.ndarray:
         """Remaining life as a fraction in [0, 1] for each particle."""

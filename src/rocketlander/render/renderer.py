@@ -16,6 +16,7 @@ from rocketlander.render.effects import ParticleSystem
 from rocketlander.render.hud import Hud
 
 TOGGLE_KEYS = {"f": "forces", "v": "velocity", "t": "trail", "p": "plots", "h": "hud"}
+FRAME_DT = 1.0 / 30.0
 
 
 class Renderer:
@@ -59,6 +60,7 @@ class Renderer:
         self.telemetry.trail.append((r.x, r.y))
         self._emit_effects(frame, dt)
         self.particles.update(dt)
+        self._hide_particles_inside_hull(d)
 
         s = self.surface
         s.blit(self.sky, (0, 0))
@@ -80,6 +82,7 @@ class Renderer:
 
     def show_frame(self, fps: int = 30) -> None:
         if self.window is not None:
+            pygame.event.pump()  # keep the OS window responsive
             self.window.blit(self.surface, (0, 0))
             pygame.display.flip()
             self.clock.tick(fps)
@@ -95,9 +98,9 @@ class Renderer:
         if self._last_time is None or t < self._last_time:
             self.reset()
             self._last_time = t
-            return 1.0 / 30.0
+            return FRAME_DT
         dt, self._last_time = t - self._last_time, t
-        return max(dt, 1e-3)
+        return dt if dt > 0 else FRAME_DT  # sim paused (outcome hold): effects keep playing
 
     def _emit_effects(self, frame: Frame, dt: float) -> None:
         r, p, c = frame.rocket, frame.params, frame.controls
@@ -110,12 +113,18 @@ class Renderer:
             exit_point, direction = scene.nozzle_geometry(r, p, c.gimbal if c else 0.0)
             self.particles.emit_flame(exit_point, direction, r.throttle, dt)
         if c is not None and abs(c.rcs) > 0.1:
-            side = -np.sign(c.rcs) * p.width / 2  # a CCW torque fires the right-side nose jet
+            side = np.sign(c.rcs) * p.width / 2  # a CCW torque fires the right-side nose jet
             point = body_to_world(r, np.array([[side, p.length / 2 - 1.0]]))[0]
             outward = body_to_world(r, np.array([[side * 2, p.length / 2 - 1.0]]))[0] - point
             self.particles.emit_rcs(point, outward / np.linalg.norm(outward), dt)
         corners = self.camera.to_world(np.array([[0, self.camera.height], [self.camera.width, 0]]))
         self.particles.emit_wind(corners[0], corners[1], frame.wind_speed, dt)
+
+    def _hide_particles_inside_hull(self, deck) -> None:
+        pos = self.particles.p.pos
+        over_deck = np.abs(pos[:, 0] - deck.x) <= deck.half_width
+        below_surface = pos[:, 1] < deck.y + (pos[:, 0] - deck.x) * np.tan(deck.angle)
+        self.particles.remove(over_deck & below_surface)
 
     def _draw_particles(self) -> None:
         p = self.particles.p

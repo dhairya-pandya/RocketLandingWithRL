@@ -64,7 +64,7 @@ def nozzle_geometry(rocket: RocketState, params: RocketParams, gimbal: float):
     """Nozzle exit point (world) and unit thrust direction."""
     direction = np.array([-np.sin(rocket.theta + gimbal), np.cos(rocket.theta + gimbal)])
     base = body_to_world(rocket, np.array([[0.0, -params.length / 2]]))[0]
-    return base - direction * 1.5, direction
+    return base - direction * 0.8, direction  # shorter than the legs, so it clears the deck
 
 
 def draw_rocket(

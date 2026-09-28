@@ -2,8 +2,10 @@ import numpy as np
 import pytest
 
 from rocketlander.agents.pid import PIDAgent
+from rocketlander.envs.physics import body_to_world
 from rocketlander.envs.rocket_env import RocketLanderEnv
 from rocketlander.render.renderer import Renderer
+from rocketlander.render.scene import nozzle_geometry
 
 
 def run(env, agent, renderer, steps):
@@ -93,4 +95,59 @@ def test_new_episode_clears_trail_and_particles():
     env.reset(seed=1)
     renderer.draw(env.frame())  # time jumps back to 0: a new episode
     assert len(renderer.telemetry.trail) == 1 and len(renderer.particles.p) == 0
+    renderer.close()
+
+
+def test_rcs_puffs_fire_on_the_side_that_produces_the_torque():
+    env = RocketLanderEnv(level="L0")
+    renderer = Renderer(width=400, height=300)
+    env.reset(seed=0)
+    env.step(np.array([-1.0, 0.0, 1.0], dtype=np.float32))  # engine off, CCW side jets
+    renderer.draw(env.frame())
+    rocket, puffs = env.frame().rocket, renderer.particles.p
+    # A CCW torque from a nose jet pushes the nose left, so the exhaust blows out to the right.
+    assert len(puffs) > 0 and np.all(puffs.pos[:, 0] > rocket.x) and np.all(puffs.vel[:, 0] > 0)
+    renderer.close()
+
+
+def test_effects_keep_moving_after_the_episode_ends():
+    env = RocketLanderEnv(level="L0")
+    renderer = Renderer(width=400, height=300)
+    env.reset(seed=0)
+    done = False
+    while not done:
+        _, _, done, _, _ = env.step(np.array([-1.0, 0.0, 0.0], dtype=np.float32))
+        renderer.draw(env.frame())
+    at_crash = len(renderer.particles.p)
+    for _ in range(30):  # one second of the outcome hold: sim time no longer advances
+        renderer.draw(env.frame())
+    assert len(renderer.particles.p) < 0.7 * at_crash
+    renderer.close()
+
+
+def test_human_render_mode_draws_during_step():
+    env = RocketLanderEnv(level="L0", render_mode="human")
+    env.reset(seed=0)
+    env.step(np.zeros(3, dtype=np.float32))
+    assert env._renderer is not None and env._renderer.window is not None
+    env.close()
+
+
+def test_nozzle_stays_above_the_leg_tips():
+    env = RocketLanderEnv(level="L0")
+    env.reset(seed=0)
+    frame = env.frame()
+    exit_point, _ = nozzle_geometry(frame.rocket, frame.params, gimbal=0.0)
+    lowest_leg = body_to_world(frame.rocket, frame.params.leg_tips_body())[:, 1].min()
+    assert exit_point[1] > lowest_leg
+
+
+def test_particles_never_show_inside_the_hull():
+    env = RocketLanderEnv(level="L0")
+    renderer = Renderer(width=400, height=300)
+    run(env, PIDAgent(), renderer, steps=2_000)
+    deck, p = env.frame().deck, renderer.particles.p
+    over_deck = np.abs(p.pos[:, 0] - deck.x) <= deck.half_width
+    surface = deck.y + (p.pos[:, 0] - deck.x) * np.tan(deck.angle)
+    assert not np.any(over_deck & (p.pos[:, 1] < surface))
     renderer.close()

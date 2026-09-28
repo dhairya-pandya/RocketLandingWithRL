@@ -1,7 +1,7 @@
 """Fly the rocket yourself.
 
-Keys: W/S throttle up/down, A/D gimbal, Q/E side thrusters, R restart, N new start,
-F/V/T/P/H toggle forces/velocity/trail/plots/HUD, Esc quit.
+Keys: W/S throttle up/down, A/D lean with the gimbal, Q/E lean with side thrusters, R restart,
+N new start, F/V/T/P/H toggle forces/velocity/trail/plots/HUD, Esc quit.
 """
 
 from __future__ import annotations
@@ -25,8 +25,8 @@ class KeyboardPilot:
     def action(self, held: dict[str, bool], dt: float) -> np.ndarray:
         change = held.get("w", False) - held.get("s", False)
         self.throttle = float(np.clip(self.throttle + change * THROTTLE_RATE * dt, 0.0, 1.0))
-        gimbal = held.get("a", False) - held.get("d", False)  # A swings the nozzle left
-        rcs = held.get("q", False) - held.get("e", False)  # Q spins counter-clockwise
+        gimbal = held.get("d", False) - held.get("a", False)  # A and Q both lean the rocket left
+        rcs = held.get("q", False) - held.get("e", False)
         return np.array([2.0 * self.throttle - 1.0, gimbal, rcs], dtype=np.float32)
 
 

@@ -116,6 +116,8 @@ class RocketLanderEnv(gym.Env):
             self._last_judgement = Judgement(Outcome.IN_FLIGHT)
         if self._renderer is not None:
             self._renderer.reset()
+        if self.render_mode == "human":
+            self.render()
         return self._observation(), {}
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
@@ -153,6 +155,8 @@ class RocketLanderEnv(gym.Env):
             "touchdown_speed": judgement.touchdown_speed,
             "fuel_used": s.setup.params.initial_fuel - s.rocket.fuel,
         }
+        if self.render_mode == "human":
+            self.render()
         return self._observation(), reward, terminated, truncated, info
 
     def get_state(self) -> EnvState:
