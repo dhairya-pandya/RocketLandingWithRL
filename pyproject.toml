@@ -13,6 +13,7 @@ dependencies = [
     "imageio>=2.37.4",
     "torch>=2.14.0",
     "tensorboard>=2.21.0",
+    "matplotlib>=3.9",
 ]
 
 [dependency-groups]

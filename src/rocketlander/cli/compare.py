@@ -1,7 +1,8 @@
 """Compare agents: rl-compare --viewer --agent pid checkpoints/ppo_L3.pt --level L3 --seed 4.
 
 Every agent flies the same start state, ship motion and wind, drawn as colour-coded rockets.
-Keys: Space pause, N next start, Esc quit. `--record race.gif` saves one race.
+Keys: Space pause, N next start, Esc quit. `--record race.gif` saves one race;
+`--report results.yaml` rebuilds RESULTS.md with tables, plots and races.
 """
 
 from __future__ import annotations
@@ -10,6 +11,7 @@ from pathlib import Path
 
 import imageio.v3 as iio
 import pygame
+import yaml
 
 from rocketlander.cli.common import base_parser, make_agent
 from rocketlander.race import Race
@@ -84,9 +86,19 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--agent", nargs="+", default=["pid", "random"], help="pid, random or .pt")
     parser.add_argument("--viewer", action="store_true", help="open the side-by-side viewer")
     parser.add_argument("--record", type=Path, default=None, help="write the race to a GIF")
+    parser.add_argument(
+        "--report",
+        type=Path,
+        default=None,
+        help="YAML listing what to compare; writes RESULTS.md and figures",
+    )
     parser.add_argument("--headless", action="store_true", help="no window (for tests)")
     parser.add_argument("--max-frames", type=int, default=None)
     args = parser.parse_args(argv)
+    if args.report:
+        from rocketlander.report import build_report, load_report_config
+
+        print(f"Wrote {build_report(load_report_config(yaml.safe_load(args.report.read_text())))}")
     if args.record:
         n = record_race(args.agent, args.level, args.seed, args.record)
         print(f"Wrote {n} frames to {args.record}")
