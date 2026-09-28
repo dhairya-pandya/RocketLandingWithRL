@@ -9,8 +9,6 @@ from typing import Any
 
 import torch
 
-from rocketlander.common.actor_critic import ActorCritic
-
 
 def git_commit() -> str:
     try:
@@ -22,7 +20,7 @@ def git_commit() -> str:
         return "unknown"
 
 
-def save_checkpoint(path: Path, agent: ActorCritic, algo: str, config: Any, **meta: Any) -> None:
+def save_checkpoint(path: Path, agent: Any, algo: str, config: Any, **meta: Any) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     torch.save(
         {
@@ -38,10 +36,12 @@ def save_checkpoint(path: Path, agent: ActorCritic, algo: str, config: Any, **me
     )
 
 
-def load_checkpoint(path: Path) -> tuple[ActorCritic, dict[str, Any]]:
+def load_checkpoint(path: Path) -> tuple[Any, dict[str, Any]]:
     """The agent (ready to act) and the checkpoint's metadata."""
+    from rocketlander.agents.registry import ALGORITHMS  # late import: registry imports agents
+
     data = torch.load(path, weights_only=True)  # refuses pickled code from untrusted files
-    agent = ActorCritic(**data["architecture"])
+    agent = ALGORITHMS[data["algo"]].agent_cls(**data["architecture"])
     agent.load_state_dict(data["state_dict"])
     agent.load_extra_state(data["extra_state"])
     agent.eval()
