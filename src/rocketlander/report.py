@@ -6,6 +6,7 @@ What goes into the report is listed in a YAML file (see results.yaml at the repo
 from __future__ import annotations
 
 import csv
+import re
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
@@ -13,13 +14,15 @@ from pathlib import Path
 
 from matplotlib.figure import Figure  # the object API needs no window or backend
 
-from rocketlander.cli.common import make_agent
+from rocketlander.cli.common import AGENTS, make_agent
 from rocketlander.common.config import config_from_dict
+from rocketlander.envs.levels import available_levels
 from rocketlander.evaluation import EVAL_SEEDS, evaluate
 from rocketlander.robustness import sweep, sweep_values
 from rocketlander.stats import wilson_interval
 
 LESSONS = "## Lessons learned"  # this section of an existing report is kept when rebuilding
+LESSONS_HEADING = re.compile(r"^##\s+lessons\b", re.IGNORECASE | re.MULTILINE)
 ALGO_COLORS = {
     "reinforce": "tab:blue",
     "ppo": "tab:orange",
@@ -71,11 +74,24 @@ def load_report_config(raw: dict) -> ReportConfig:
     raw["agents"] = [config_from_dict(AgentEntry, a) for a in raw.get("agents", [])]
     raw["races"] = [config_from_dict(Race, r) for r in raw.get("races", [])]
     config = config_from_dict(ReportConfig, raw)
-    names = {a.name for a in config.agents}
-    wanted = set(config.robustness_agents) | {n for r in config.races for n in r.agents}
-    if wanted - names:
-        raise ValueError(f"Unknown agent names: {sorted(wanted - names)}")
+    _check(config)
     return config
+
+
+def _check(config: ReportConfig) -> None:
+    """Catch typos before minutes of evaluation are spent."""
+    names = [a.name for a in config.agents]
+    if len(set(names)) != len(names):
+        raise ValueError(f"Agent names must be unique: {names}")
+    wanted = set(config.robustness_agents) | {n for r in config.races for n in r.agents}
+    if wanted - set(names):
+        raise ValueError(f"Unknown agent names: {sorted(wanted - set(names))}")
+    for a in config.agents:
+        if a.agent not in AGENTS and not (a.agent.endswith(".pt") and Path(a.agent).is_file()):
+            raise ValueError(f"{a.name}: no built-in agent or checkpoint file {a.agent!r}")
+    levels = set(config.levels) | {config.robustness_level} | {r.level for r in config.races}
+    if levels - set(available_levels()):
+        raise ValueError(f"Unknown levels: {sorted(levels - set(available_levels()))}")
 
 
 def _success(job: tuple[str, str, int]) -> tuple[float, int]:
@@ -112,7 +128,8 @@ def read_curve(run: Path) -> tuple[list[float], list[float], list[float]]:
 def plot_learning_curves(config: ReportConfig, path: Path) -> bool:
     panels: dict[str, list[AgentEntry]] = defaultdict(list)
     for a in config.agents:
-        if a.run and a.trained_on and (Path(a.run) / "metrics.csv").exists():
+        on_report = a.trained_on in config.levels
+        if a.run and on_report and (Path(a.run) / "metrics.csv").exists():
             panels[a.trained_on].append(a)
     if not panels:
         return False
@@ -221,6 +238,16 @@ def markdown(config: ReportConfig, table, figures: dict[str, str], kept: str) ->
     return "\n".join(lines) + "\n\n" + kept
 
 
+def kept_lessons(old: str, out: Path) -> str:
+    """The lessons section of the previous report; any other old report is backed up first."""
+    match = LESSONS_HEADING.search(old)
+    if match:
+        return old[match.start() :]
+    if old.strip():
+        out.with_name(out.name + ".bak").write_text(old)
+    return f"{LESSONS}\n\n(Your notes go here.)\n"
+
+
 def build_report(config: ReportConfig, root: Path = Path(".")) -> Path:
     from rocketlander.cli.compare import record_race  # pygame is only needed for races
 
@@ -247,7 +274,6 @@ def build_report(config: ReportConfig, root: Path = Path(".")) -> Path:
         )
         figures[f"race {race.level}, seed {race.seed}"] = f"{config.figures}/{name}"
     out = root / config.out
-    old = out.read_text() if out.exists() else ""
-    kept = old[old.index(LESSONS) :] if LESSONS in old else f"{LESSONS}\n\n(Your notes go here.)\n"
+    kept = kept_lessons(out.read_text() if out.exists() else "", out)
     out.write_text(markdown(config, table, figures, kept))
     return out

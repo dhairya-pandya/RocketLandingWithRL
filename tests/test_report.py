@@ -2,7 +2,15 @@ import pytest
 import yaml
 
 from rocketlander.cli import compare
-from rocketlander.report import build_report, cell, line_style, load_report_config, read_curve
+from rocketlander.report import (
+    build_report,
+    cell,
+    kept_lessons,
+    line_style,
+    load_report_config,
+    plot_learning_curves,
+    read_curve,
+)
 
 
 def test_report_config_rejects_unknown_agent_names():
@@ -71,3 +79,56 @@ def test_compare_cli_builds_a_report_from_yaml(tmp_path, monkeypatch, capsys):
     )
     compare.main(["--report", "r.yaml"])
     assert (tmp_path / "R.md").exists() and "Wrote R.md" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    "change",
+    [
+        {"agents": [{"name": "PPO", "agent": "checkpoints/missing.pt"}]},
+        {"agents": [{"name": "PDI", "agent": "pdi"}]},
+        {"levels": ["L9"]},
+        {"agents": [{"name": "PID", "agent": "pid"}, {"name": "PID", "agent": "random"}]},
+    ],
+)
+def test_report_config_rejects_mistakes_before_evaluating(change):
+    raw = {
+        "out": "R.md",
+        "figures": "f",
+        "levels": ["L0"],
+        "episodes": 1,
+        "agents": [{"name": "PID", "agent": "pid"}],
+    }
+    with pytest.raises(ValueError):
+        load_report_config({**raw, **change})
+
+
+def test_learning_curves_skip_agents_trained_outside_the_report_levels(tmp_path):
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "metrics.csv").write_text(
+        "step,key,value\n1000,train/steps_per_second,100\n1000,eval/success_rate,0.5\n"
+    )
+    config = load_report_config(
+        {
+            "out": "R.md",
+            "figures": "f",
+            "levels": ["L0"],
+            "episodes": 1,
+            "agents": [{"name": "PID", "agent": "pid", "run": str(run), "trained_on": "L4"}],
+        }
+    )
+    assert plot_learning_curves(config, tmp_path / "curves.png") is False
+
+
+@pytest.mark.parametrize("heading", ["## Lessons Learned", "## Lessons", "##  lessons learned"])
+def test_lessons_survive_a_renamed_heading(heading, tmp_path):
+    assert kept_lessons(f"# Results\n\n{heading}\n\nMine.\n", tmp_path / "R.md") == (
+        f"{heading}\n\nMine.\n"
+    )
+
+
+def test_a_report_without_lessons_is_backed_up_before_it_is_replaced(tmp_path):
+    out = tmp_path / "R.md"
+    kept = kept_lessons("hand-written notes\n", out)
+    assert "Lessons learned" in kept
+    assert (tmp_path / "R.md.bak").read_text() == "hand-written notes\n"

@@ -6,7 +6,7 @@ from rocketlander.cli import compare
 from rocketlander.envs.landing import Outcome
 from rocketlander.race import Race, _from_deck, _to_deck
 from rocketlander.render.camera import Camera
-from rocketlander.render.race_view import RaceRenderer
+from rocketlander.render.race_view import RaceRenderer, display_color
 
 
 def test_racers_share_the_start_state_and_identical_agents_fly_identically():
@@ -75,3 +75,23 @@ def test_compare_cli_records_a_gif_and_runs_the_viewer_headless(tmp_path, capsys
     compare.main(["--agent", "random", "random", "--level", "L0", "--record", str(out)])
     compare.main(["--agent", "pid", "random", "--viewer", "--headless", "--max-frames", "10"])
     assert out.exists() and "Wrote" in capsys.readouterr().out
+
+
+def test_duplicate_labels_are_made_unique_and_each_racer_is_drawn():
+    race = Race([("pid", PIDAgent()), ("pid", RandomAgent(seed=0))], "L0", seed=1)
+    assert [r.label for r in race.racers] == ["pid", "pid 2"]
+    renderer = RaceRenderer(window=False)
+    while not race.finished:
+        race.step()
+        renderer.draw_race(race, "L0")
+    assert renderer._wrecked == {1}  # only the random racer exploded
+    renderer.close()
+
+
+def test_finished_racers_that_did_not_land_are_dimmed():
+    race = Race([("pid", PIDAgent()), ("random", RandomAgent(seed=0))], "L0", seed=1)
+    while not race.finished:
+        race.step()
+    landed, failed = race.racers
+    assert display_color(landed) == landed.color
+    assert display_color(failed) != failed.color

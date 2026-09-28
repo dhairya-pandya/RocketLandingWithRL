@@ -54,7 +54,11 @@ class Race:
 
     def __init__(self, agents: list[tuple[str, Agent]], level: str, seed: int) -> None:
         self.racers = []
+        seen: dict[str, int] = {}
         for i, (label, agent) in enumerate(agents):
+            seen[label] = seen.get(label, 0) + 1
+            if seen[label] > 1:  # e.g. two checkpoints both named ppo_L3.pt
+                label = f"{label} {seen[label]}"
             env = RocketLanderEnv(level=level)
             obs, _ = env.reset(seed=seed)
             color = COLORS[i % len(COLORS)]
