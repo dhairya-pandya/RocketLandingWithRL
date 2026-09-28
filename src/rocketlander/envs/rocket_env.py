@@ -218,6 +218,12 @@ class RocketLanderEnv(gym.Env):
         self.level: LevelConfig = level if isinstance(level, LevelConfig) else get_level(level)
         self.max_steps = int(self.level.max_seconds / (PHYSICS_DT * PHYSICS_STEPS_PER_ACTION))
 
+    def deck_at(self, t: float) -> DeckState:
+        """The deck at time t of the current episode (the ship's motion is a function of time)."""
+        if self._state is None:
+            raise RuntimeError("Call reset() before deck_at().")
+        return deck_state(self._state.setup.ship, t)
+
     def _deck(self) -> DeckState:
         assert self._state is not None
         return deck_state(self._state.setup.ship, self._state.time)
