@@ -51,6 +51,7 @@ it crashed.
 | Action | `Box(-1, 1, (3,))`: throttle, gimbal, RCS, at 30 Hz |
 | Observation | 11 floats: position and velocity relative to the deck, `sin θ`, `cos θ`, `ω`, deck roll and roll rate, fuel fraction, actual throttle. Wind is **not** observed. |
 | Reward | Potential-based shaping `γΦ(s') − Φ(s)` (closer, slower, more upright is better), small fuel cost, +100 plus a softness bonus for landing, −100 for a crash. `reward_mode="sparse"` keeps only the terminal reward. |
+| Task reward | `info["task_reward"]` is the unshaped reward (terminal reward minus fuel cost). Compare agents with it: shaping only preserves the optimal policy for a learner that discounts with `shaping_gamma` (default 0.99), so pass `shaping_gamma=1.0` for methods that optimize raw episode returns. |
 | Snapshots | `get_state()` / `set_state()` / `reset(options={"state": s})` restore the env exactly, including the random number generator. |
 
 ## Levels and baselines
@@ -64,8 +65,11 @@ it crashed.
 | L4 | Booster return: far start at high speed | 40% |
 
 Levels are YAML files in `src/rocketlander/configs/levels/` (angles in degrees, `_deg` keys);
-add a file to add a level. A random policy never lands. The PID controller has no integral term, so steady wind leaves it
-hovering off-target on L3 and L4. That gap is what the learning agents have to close.
+add a file to add a level. A random policy never lands.
+
+The PID controller is tuned for nominal physics. On L3 the randomized mass, thrust and engine lag
+cost it the most (47% becomes 70% with nominal physics), and wind costs the rest (94% with
+neither). L4 behaves the same way. That gap is what the learning agents have to close.
 
 ## Development
 

@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 
 from rocketlander.agents.pid import PIDAgent
@@ -17,3 +18,18 @@ def test_random_agent_never_lands():
     summary = evaluate(RandomAgent(seed=0), "L0", SEEDS[:20])
     assert summary.success_rate == 0.0
     assert summary.episodes == 20 and sum(summary.reasons.values()) == 20
+
+
+class HoverAgent:
+    """Holds altitude and never tries to land."""
+
+    def act(self, obs: np.ndarray, deterministic: bool = True) -> np.ndarray:
+        throttle = np.clip(0.55 - 0.5 * obs[3], 0.0, 1.0)  # obs[3] = vertical speed / 20
+        return np.array([2.0 * throttle - 1.0, 0.0, 0.0], dtype=np.float32)
+
+
+def test_task_return_ranks_landing_above_hovering():
+    hover = evaluate(HoverAgent(), "L0", SEEDS[:20])
+    pid = evaluate(PIDAgent(), "L0", SEEDS[:20])
+    assert hover.success_rate == 0.0 and pid.success_rate == 1.0
+    assert pid.mean_task_return > hover.mean_task_return

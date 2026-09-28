@@ -76,28 +76,36 @@ def test_sparse_reward_is_zero_until_the_episode_ends():
     assert rewards[-1] in (-100.0,) or rewards[-1] >= 100.0
 
 
-def test_shaping_telescopes_to_minus_initial_potential():
-    """Shaping with phi(terminal) = 0 adds exactly -phi(s0) to the discounted return."""
-    env = RocketLanderEnv(level="L0")
-    shaped = RocketLanderEnv(level="L0")
-    sparse = RocketLanderEnv(level="L0", reward_mode="sparse")
+@pytest.mark.parametrize("gamma", [SHAPING_GAMMA, 1.0])
+def test_shaping_telescopes_to_minus_initial_potential(gamma):
+    """Shaping with phi(terminal) = 0 adds exactly -phi(s0) to the gamma-discounted return."""
+    env = RocketLanderEnv(level="L0", shaping_gamma=gamma)
     env.reset(seed=5)
     initial_potential = env.get_state().potential
+
+    shaping_only = []
+    for action in fixed_actions(2_000):
+        _, reward, terminated, truncated, info = env.step(action)
+        shaping_only.append(reward - info["task_reward"])
+        if terminated or truncated:
+            break
+    discounts = gamma ** np.arange(len(shaping_only))
+    assert np.sum(discounts * np.array(shaping_only)) == pytest.approx(-initial_potential)
+
+
+def test_task_reward_is_terminal_reward_minus_fuel_cost():
+    shaped = RocketLanderEnv(level="L0")
+    sparse = RocketLanderEnv(level="L0", reward_mode="sparse")
     shaped.reset(seed=5)
     sparse.reset(seed=5)
-
-    actions = fixed_actions(2_000)
-    _, shaped_rewards = rollout(shaped, actions)
-    _, sparse_rewards = rollout(sparse, actions)
-    fuel = np.array(
-        [
-            FUEL_COST * decode_action(a, env.get_state().setup.params).throttle
-            for a in actions[: len(shaped_rewards)]
-        ]
-    )
-    shaping_only = shaped_rewards + fuel - sparse_rewards
-    discounts = SHAPING_GAMMA ** np.arange(len(shaping_only))
-    assert np.sum(discounts * shaping_only) == pytest.approx(-initial_potential)
+    params = shaped.get_state().setup.params
+    for action in fixed_actions(2_000):
+        _, terminal, terminated, truncated, _ = sparse.step(action)
+        _, _, _, _, info = shaped.step(action)
+        fuel = FUEL_COST * decode_action(action, params).throttle
+        assert info["task_reward"] == pytest.approx(terminal - fuel)
+        if terminated or truncated:
+            break
 
 
 def test_time_limit_truncates():
@@ -144,3 +152,14 @@ def test_env_can_be_reused_after_an_episode_ends():
     env.reset(seed=1)
     _, _, terminated, truncated, _ = env.step(np.zeros(3, dtype=np.float32))
     assert not (terminated or truncated) and not env.frame().judgement.done
+
+
+def test_restoring_one_snapshot_twice_gives_identical_rollouts():
+    env = RocketLanderEnv(level="L3")
+    env.reset(seed=11)
+    snapshot = env.get_state()
+    runs = []
+    for _ in range(2):
+        env.set_state(snapshot)
+        runs.append(rollout(env, fixed_actions(seed=3)))
+    assert np.array_equal(runs[0][0], runs[1][0]) and np.array_equal(runs[0][1], runs[1][1])

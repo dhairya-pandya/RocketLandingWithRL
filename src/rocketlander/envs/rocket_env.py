@@ -54,11 +54,15 @@ class Frame:
 class RocketLanderEnv(gym.Env):
     metadata = {"render_modes": [], "render_fps": 30}
 
-    def __init__(self, level: str = "L0", reward_mode: str = "shaped") -> None:
+    def __init__(
+        self, level: str = "L0", reward_mode: str = "shaped", shaping_gamma: float = SHAPING_GAMMA
+    ) -> None:
+        """Set shaping_gamma to the learner's discount; episode-return methods should use 1.0."""
         if reward_mode not in ("shaped", "sparse"):
             raise ValueError(f"reward_mode must be 'shaped' or 'sparse', got {reward_mode!r}")
         self.level: LevelConfig = get_level(level)
         self.reward_mode = reward_mode
+        self.shaping_gamma = shaping_gamma
         self.bounds = Bounds()
         self.max_steps = int(self.level.max_seconds / (PHYSICS_DT * PHYSICS_STEPS_PER_ACTION))
         self.action_space = gym.spaces.Box(-1.0, 1.0, shape=(3,), dtype=np.float32)
@@ -113,8 +117,14 @@ class RocketLanderEnv(gym.Env):
 
         terminated = judgement.done
         truncated = not terminated and s.steps >= self.max_steps
-        reward = self._reward(controls.throttle, judgement)
+        terminal = self._terminal_reward(judgement)
+        task_reward = terminal - FUEL_COST * controls.throttle
+        if self.reward_mode == "sparse":
+            reward = terminal
+        else:
+            reward = task_reward + self._shaping(judgement)
         info = {
+            "task_reward": task_reward,  # unshaped: use for evaluating and comparing agents
             "outcome": judgement.outcome.value,
             "reason": judgement.reason if judgement.done else ("time limit" if truncated else ""),
             "touchdown_speed": judgement.touchdown_speed,
@@ -179,20 +189,19 @@ class RocketLanderEnv(gym.Env):
         tilt = abs(rocket.theta - deck.angle)
         return -(0.5 * distance + 2.0 * speed + 30.0 * tilt)
 
-    def _reward(self, throttle: float, judgement: Judgement) -> float:
-        assert self._state is not None
-        terminal = 0.0
+    @staticmethod
+    def _terminal_reward(judgement: Judgement) -> float:
         if judgement.outcome is Outcome.LANDED:
             softness = 1.0 - judgement.touchdown_speed / 2.0
-            terminal = LANDING_REWARD + SOFTNESS_BONUS * softness
-        elif judgement.outcome in (Outcome.CRASHED, Outcome.FAILED):
-            terminal = CRASH_PENALTY
+            return LANDING_REWARD + SOFTNESS_BONUS * softness
+        if judgement.outcome in (Outcome.CRASHED, Outcome.FAILED):
+            return CRASH_PENALTY
+        return 0.0
 
-        if self.reward_mode == "sparse":
-            return float(terminal)
-
-        # Potential-based shaping with phi(terminal) = 0 keeps the optimal policy unchanged.
+    def _shaping(self, judgement: Judgement) -> float:
+        """Potential-based shaping with phi(terminal) = 0 keeps the optimal policy unchanged."""
+        assert self._state is not None
         new_potential = 0.0 if judgement.done else self._potential(self._state.rocket, self._deck())
-        shaping = SHAPING_GAMMA * new_potential - self._state.potential
+        shaping = self.shaping_gamma * new_potential - self._state.potential
         self._state.potential = new_potential
-        return float(shaping - FUEL_COST * throttle + terminal)
+        return float(shaping)
