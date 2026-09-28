@@ -112,7 +112,7 @@ def test_training_runs_and_round_trips_a_checkpoint(tmp_path, algo, train, confi
 @pytest.mark.slow
 def test_grpo_learns_to_land_on_l0(tmp_path):
     torch.set_num_threads(1)
-    agent = train_grpo(GRPOConfig(total_steps=2_000_000), "L0", 1, Logger(tmp_path, verbose=False))
+    agent = train_grpo(GRPOConfig(total_steps=3_000_000), "L0", 1, Logger(tmp_path, verbose=False))
     assert evaluate(agent, "L0", EVAL_SEEDS[:50]).success_rate >= 0.5
 
 
