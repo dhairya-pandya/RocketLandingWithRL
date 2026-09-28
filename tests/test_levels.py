@@ -19,6 +19,7 @@ def test_samples_stay_inside_level_ranges(name):
         assert level.start_offset_x[0] <= setup.rocket.x <= level.start_offset_x[1]
         assert level.wind_mean[0] <= setup.wind_model.mean <= level.wind_mean[1]
         assert setup.rocket.fuel == setup.params.initial_fuel
+        assert level.fuel[0] <= setup.params.initial_fuel <= level.fuel[1]
 
 
 def test_l0_is_a_static_calm_pad():

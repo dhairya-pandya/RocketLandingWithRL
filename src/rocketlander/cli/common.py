@@ -4,12 +4,14 @@ from __future__ import annotations
 
 import argparse
 from collections.abc import Callable
+from pathlib import Path
 
 import numpy as np
 
 from rocketlander.agents.base import Agent
 from rocketlander.agents.pid import PIDAgent
 from rocketlander.agents.random_agent import RandomAgent
+from rocketlander.common.checkpoint import load_checkpoint
 from rocketlander.envs.levels import available_levels
 from rocketlander.envs.rocket_env import RocketLanderEnv
 from rocketlander.render.renderer import Renderer
@@ -18,15 +20,23 @@ AGENTS: dict[str, Callable[[], Agent]] = {"pid": PIDAgent, "random": RandomAgent
 
 
 def make_agent(name: str) -> Agent:
+    """A built-in agent by name, or a trained agent from a checkpoint path (*.pt)."""
+    if name.endswith(".pt"):
+        return load_checkpoint(Path(name))[0]
     if name not in AGENTS:
-        raise ValueError(f"Unknown agent {name!r}. Choose from {sorted(AGENTS)}.")
+        raise ValueError(f"Unknown agent {name!r}. Choose from {sorted(AGENTS)} or a .pt path.")
     return AGENTS[name]()
 
 
-def base_parser(description: str) -> argparse.ArgumentParser:
+def agent_argument(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--agent", default="pid", help=f"{', '.join(sorted(AGENTS))} or a .pt path")
+
+
+def base_parser(description: str, seed: bool = True) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=description)
     parser.add_argument("--level", default="L0", choices=available_levels())
-    parser.add_argument("--seed", type=int, default=0)
+    if seed:
+        parser.add_argument("--seed", type=int, default=0)
     return parser
 
 

@@ -7,7 +7,7 @@ from pathlib import Path
 import imageio.v3 as iio
 import pygame
 
-from rocketlander.cli.common import AGENTS, base_parser, make_agent, step_and_draw
+from rocketlander.cli.common import agent_argument, base_parser, make_agent, step_and_draw
 from rocketlander.envs.rocket_env import RocketLanderEnv
 from rocketlander.render.renderer import Renderer
 
@@ -50,7 +50,7 @@ def record(
 
 def main(argv: list[str] | None = None) -> None:
     parser = base_parser("Record an agent's episode to a GIF.")
-    parser.add_argument("--agent", default="pid", choices=sorted(AGENTS))
+    agent_argument(parser)
     parser.add_argument("--out", type=Path, default=Path("videos/episode.gif"))
     parser.add_argument("--every", type=int, default=2, help="keep every n-th step")
     parser.add_argument("--scale", type=float, default=0.5)

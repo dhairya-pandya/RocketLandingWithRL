@@ -1,0 +1,18 @@
+# PPO hyperparameters (see rocketlander/agents/ppo.py for meanings).
+total_steps: 5000000
+num_envs: 32
+num_steps: 256
+gamma: 0.999
+gae_lambda: 0.95
+learning_rate: 0.0003
+anneal_lr: true
+update_epochs: 10
+num_minibatches: 32
+clip_coef: 0.2
+ent_coef: 0.0
+vf_coef: 0.5
+max_grad_norm: 0.5
+hidden: [64, 64]
+init_log_std: -0.5
+eval_interval: 500000
+eval_episodes: 20

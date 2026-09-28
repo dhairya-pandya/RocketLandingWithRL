@@ -24,12 +24,16 @@ from rocketlander.envs.wind import WindState, step_wind
 
 PHYSICS_DT = 1.0 / 60.0
 PHYSICS_STEPS_PER_ACTION = 2  # agent acts at 30 Hz
-SHAPING_GAMMA = 0.99
+SHAPING_GAMMA = 1.0
 FUEL_COST = 0.05
+TIME_COST = 0.1  # per step, so hovering until the time limit is worse than trying to land
 LANDING_REWARD = 100.0
 SOFTNESS_BONUS = 50.0
 CRASH_PENALTY = -100.0
+DECK_CRASH_BASE = 20.0
+DECK_CRASH_PER_MS = 8.0
 OBS_SIZE = 11
+FUEL_SCALE = 1_000.0  # observation reports fuel remaining in tonnes
 
 
 @dataclass
@@ -71,7 +75,7 @@ class RocketLanderEnv(gym.Env):
         shaping_gamma: float = SHAPING_GAMMA,
         render_mode: str | None = None,
     ) -> None:
-        """Set shaping_gamma to the learner's discount; episode-return methods should use 1.0."""
+        """shaping_gamma 1.0 (default): pure progress shaping, no hidden per-step bonus."""
         if reward_mode not in ("shaped", "sparse"):
             raise ValueError(f"reward_mode must be 'shaped' or 'sparse', got {reward_mode!r}")
         self.level: LevelConfig = get_level(level)
@@ -143,7 +147,7 @@ class RocketLanderEnv(gym.Env):
         terminated = judgement.done
         truncated = not terminated and s.steps >= self.max_steps
         terminal = self._terminal_reward(judgement)
-        task_reward = terminal - FUEL_COST * controls.throttle
+        task_reward = terminal - FUEL_COST * controls.throttle - TIME_COST
         if self.reward_mode == "sparse":
             reward = terminal
         else:
@@ -225,7 +229,7 @@ class RocketLanderEnv(gym.Env):
             r.omega,
             d.angle / 0.1,
             d.angular_velocity / 0.1,
-            r.fuel / self._state.setup.params.initial_fuel,
+            r.fuel / FUEL_SCALE,
             r.throttle,
         ]
         return np.asarray(obs, dtype=np.float32)
@@ -243,14 +247,19 @@ class RocketLanderEnv(gym.Env):
         if judgement.outcome is Outcome.LANDED:
             softness = 1.0 - judgement.touchdown_speed / 2.0
             return LANDING_REWARD + SOFTNESS_BONUS * softness
+        if judgement.outcome is Outcome.CRASHED and judgement.reason != "missed the ship":
+            # Graded by impact speed: "almost landed" must beat "fell out of the sky".
+            penalty = DECK_CRASH_BASE + DECK_CRASH_PER_MS * judgement.touchdown_speed
+            return max(CRASH_PENALTY, -penalty)
         if judgement.outcome in (Outcome.CRASHED, Outcome.FAILED):
             return CRASH_PENALTY
         return 0.0
 
     def _shaping(self, judgement: Judgement) -> float:
-        """Potential-based shaping with phi(terminal) = 0 keeps the optimal policy unchanged."""
+        """Progress reward gamma * phi(s') - phi(s). phi is kept at touchdown (not zeroed), so the
+        shaping also grades how close, slow and upright the episode ended."""
         assert self._state is not None
-        new_potential = 0.0 if judgement.done else self._potential(self._state.rocket, self._deck())
+        new_potential = self._potential(self._state.rocket, self._deck())
         shaping = self.shaping_gamma * new_potential - self._state.potential
         self._state.potential = new_potential
         return float(shaping)
