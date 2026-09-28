@@ -9,10 +9,13 @@ dependencies = [
     "numpy>=2.0",
     "gymnasium>=1.0",
     "pyyaml>=6.0",
+    "pygame-ce>=2.5.8",
+    "imageio>=2.37.4",
 ]
 
 [dependency-groups]
 dev = [
+    "pillow>=12.3.0",
     "pytest>=8.0",
     "ruff>=0.6",
 ]
@@ -39,3 +42,8 @@ select = ["E", "F", "I", "UP", "B", "SIM", "N"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["rocketlander"]
+
+[project.scripts]
+rl-play = "rocketlander.cli.play:main"
+rl-watch = "rocketlander.cli.watch:main"
+rl-record = "rocketlander.cli.record:main"
