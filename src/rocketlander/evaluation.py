@@ -10,6 +10,8 @@ import numpy as np
 from rocketlander.agents.base import Agent
 from rocketlander.envs.rocket_env import RocketLanderEnv
 
+EVAL_SEEDS = list(range(10_000, 10_100))  # held out: training envs are seeded below 10 000
+
 
 @dataclass
 class EvalSummary:
@@ -49,3 +51,9 @@ def evaluate(agent: Agent, level: str, seeds: list[int]) -> EvalSummary:
         mean_fuel_used=float(np.mean(fuel)),
         reasons=reasons,
     )
+
+
+def eval_metrics(agent: Agent, level: str, episodes: int) -> dict[str, float]:
+    """Success rate and task return on the first `episodes` held-out seeds, for logging."""
+    summary = evaluate(agent, level, EVAL_SEEDS[:episodes])
+    return {"eval/success_rate": summary.success_rate, "eval/task_return": summary.mean_task_return}
