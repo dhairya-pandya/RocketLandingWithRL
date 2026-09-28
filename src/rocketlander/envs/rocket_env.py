@@ -11,7 +11,14 @@ import numpy as np
 
 from rocketlander.envs.landing import Bounds, Judgement, Outcome, judge
 from rocketlander.envs.levels import EpisodeSetup, LevelConfig, get_level, sample_setup
-from rocketlander.envs.physics import Forces, RocketState, decode_action, step_rocket
+from rocketlander.envs.physics import (
+    Controls,
+    Forces,
+    RocketParams,
+    RocketState,
+    decode_action,
+    step_rocket,
+)
 from rocketlander.envs.ship import DeckState, deck_state
 from rocketlander.envs.wind import WindState, step_wind
 
@@ -43,19 +50,26 @@ class Frame:
     """Read-only snapshot for the renderer."""
 
     rocket: RocketState
+    params: RocketParams
     deck: DeckState
     wind_speed: float
+    controls: Controls | None
     forces: Forces | None
     judgement: Judgement
     time: float
     level: str
+    time_limit_reached: bool = False
 
 
 class RocketLanderEnv(gym.Env):
-    metadata = {"render_modes": [], "render_fps": 30}
+    metadata = {"render_modes": ["human", "rgb_array"], "render_fps": 30}
 
     def __init__(
-        self, level: str = "L0", reward_mode: str = "shaped", shaping_gamma: float = SHAPING_GAMMA
+        self,
+        level: str = "L0",
+        reward_mode: str = "shaped",
+        shaping_gamma: float = SHAPING_GAMMA,
+        render_mode: str | None = None,
     ) -> None:
         """Set shaping_gamma to the learner's discount; episode-return methods should use 1.0."""
         if reward_mode not in ("shaped", "sparse"):
@@ -63,6 +77,10 @@ class RocketLanderEnv(gym.Env):
         self.level: LevelConfig = get_level(level)
         self.reward_mode = reward_mode
         self.shaping_gamma = shaping_gamma
+        if render_mode not in (None, *self.metadata["render_modes"]):
+            raise ValueError(f"render_mode must be one of {self.metadata['render_modes']}")
+        self.render_mode = render_mode
+        self._renderer = None
         self.bounds = Bounds()
         self.max_steps = int(self.level.max_seconds / (PHYSICS_DT * PHYSICS_STEPS_PER_ACTION))
         self.action_space = gym.spaces.Box(-1.0, 1.0, shape=(3,), dtype=np.float32)
@@ -71,6 +89,7 @@ class RocketLanderEnv(gym.Env):
         )
         self._state: EnvState | None = None
         self._last_forces: Forces | None = None
+        self._last_controls: Controls | None = None
         self._last_judgement = Judgement(Outcome.IN_FLIGHT)
 
     def reset(
@@ -93,7 +112,10 @@ class RocketLanderEnv(gym.Env):
                 rng_state={},
             )
             self._last_forces = None
+            self._last_controls = None
             self._last_judgement = Judgement(Outcome.IN_FLIGHT)
+        if self._renderer is not None:
+            self._renderer.reset()
         return self._observation(), {}
 
     def step(self, action: np.ndarray) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
@@ -101,6 +123,7 @@ class RocketLanderEnv(gym.Env):
             raise RuntimeError("Call reset() before step().")
         s = self._state
         controls = decode_action(action, s.setup.params)
+        self._last_controls = controls
 
         judgement = Judgement(Outcome.IN_FLIGHT)
         for _ in range(PHYSICS_STEPS_PER_ACTION):
@@ -144,6 +167,7 @@ class RocketLanderEnv(gym.Env):
         if state.rng_state:
             self.np_random.bit_generator.state = copy.deepcopy(state.rng_state)
         self._last_forces = None
+        self._last_controls = None
         self._last_judgement = Judgement(Outcome.IN_FLIGHT)
 
     def frame(self) -> Frame:
@@ -151,13 +175,34 @@ class RocketLanderEnv(gym.Env):
             raise RuntimeError("Call reset() before frame().")
         return Frame(
             rocket=self._state.rocket,
+            params=self._state.setup.params,
             deck=self._deck(),
             wind_speed=self._state.wind.speed,
+            controls=self._last_controls,
             forces=self._last_forces,
             judgement=self._last_judgement,
             time=self._state.time,
             level=self.level.name,
+            time_limit_reached=self._state.steps >= self.max_steps,
         )
+
+    def render(self) -> np.ndarray | None:
+        if self.render_mode is None:
+            return None
+        if self._renderer is None:
+            from rocketlander.render.renderer import Renderer  # pygame is only needed to render
+
+            self._renderer = Renderer(window=self.render_mode == "human")
+        self._renderer.draw(self.frame())
+        if self.render_mode == "human":
+            self._renderer.show_frame(self.metadata["render_fps"])
+            return None
+        return self._renderer.to_array()
+
+    def close(self) -> None:
+        if self._renderer is not None:
+            self._renderer.close()
+            self._renderer = None
 
     def _deck(self) -> DeckState:
         assert self._state is not None
