@@ -1,0 +1,10 @@
+# Evolution strategies hyperparameters (see rocketlander/agents/es.py for meanings).
+total_steps: 20000000
+population: 64
+episodes_per_member: 2
+sigma: 0.05
+learning_rate: 0.02
+weight_decay: 0.005
+hidden: [32, 32]
+eval_interval: 1000000
+eval_episodes: 20

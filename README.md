@@ -6,8 +6,9 @@ on a laptop CPU, and compared against a hand-written PID controller.
 
 ![A PPO agent landing on the rolling drone ship (level L2)](media/ppo_landing_L2.gif)
 
-Status: **Phase 4 done**: environment, viewer, baselines, and four learning agents (REINFORCE, PPO,
-SAC, TD3) trained on a laptop CPU. GRPO and CEM/ES come next.
+Status: **Phase 5 done**: environment, viewer, baselines, and six learning agents (REINFORCE, PPO,
+SAC, TD3, GRPO, evolution strategies) trained on a laptop CPU. Curriculum, domain randomization and a
+full evaluation suite come next.
 
 ## Results so far
 
@@ -37,10 +38,22 @@ Success rate on 100 held-out start states per level (seeds 10000–10099, never 
 | TD3, trained on L2 | 13% | 40% | 52% | 37% | 12% |
 | TD3, trained on L3 | 53% | 22% | 5% | 1% | 2% |
 | TD3, trained on L4 | 0% | 0% | 0% | 0% | 0% |
+| GRPO, trained on L0 | 100% | 63% | 0% | 0% | 0% |
+| GRPO, trained on L1 | 100% | 89% | 0% | 0% | 0% |
+| GRPO, trained on L2 | 100% | 82% | 86% | 33% | 9% |
+| GRPO, trained on L3 | 0% | 1% | 1% | 14% | 4% |
+| GRPO, trained on L4 | 0% | 0% | 0% | 0% | 1% |
+| ES, trained on L0 | 97% | 60% | 0% | 0% | 0% |
+| ES, trained on L1 | 100% | 100% | 0% | 0% | 0% |
+| **ES, trained on L2** | **100%** | **96%** | **90%** | 60% | 11% |
+| ES, trained on L3 | 39% | 81% | 63% | 64% | 27% |
+| ES, trained on L4 | 0% | 0% | 0% | 0% | 0% |
 
-Each agent is one seed. PPO and REINFORCE learn from scratch for 5 M steps (6–8 minutes). SAC and
-TD3 train for 1 M steps (15–21 minutes) and start from 50 k steps of noisy PID demonstrations in
-their replay buffer (see below). The checkpoints are in `checkpoints/`. What the table shows:
+Each agent is one seed. PPO, REINFORCE and GRPO learn from scratch for 5 M steps (6–8 minutes).
+Evolution strategies (ES) learn from scratch for 20 M steps (about 17 minutes; its simulation is
+batched, so steps are cheap). SAC and TD3 train for 1 M steps (15–21 minutes) and start from 50 k
+steps of noisy PID demonstrations in their replay buffer (see below). The checkpoints are in
+`checkpoints/`. What the table shows:
 
 - **Randomization makes generalists.** The agent trained on L3, where wind, mass, thrust and engine
   lag change every episode, lands 95–100% on L0–L3: better than each level's own specialist, and
@@ -49,6 +62,16 @@ their replay buffer (see below). The checkpoints are in `checkpoints/`. What the
   45%. Fine-tuning the L2 agent on L3 and L4 did worse than training from scratch (55% and 4%), because
   its exploration noise had already collapsed.
 - **PPO beats REINFORCE everywhere beyond L0**, on the same network, normalization and step budget.
+- **GRPO needs no critic.** It restarts 8 rollouts from the same simulator snapshot and scores each
+  against its siblings, the way LLM post-training scores several answers to one prompt. It comes
+  close to PPO on L0–L2 (100%, 89%, 86% against PPO's 97%, 97%, 94%). One score per 600-step
+  rollout is coarse credit, though, and it falls apart in wind (L3: 14%). Optionally
+  (`pretrain: bc_pid`), GRPO first behavior-clones the PID, like supervised fine-tuning before RL.
+  With a low sampling noise (`init_log_std: -2`) that reached 92% on L2 in 400 k steps.
+- **Gradient-free evolution strategies are the surprise.** A 1.5k-parameter policy searched by
+  perturbing its weights (no gradients through the episode, no value function) lands 90–100% on
+  L0–L2. The L2 agent also transfers well: 96% on L1 and 60% on the unseen, windy L3. It used a 4×
+  larger step budget than PPO, but its batched simulation makes steps cheap.
 - **Off-policy agents need help to explore here.** From scratch, SAC and TD3 never landed once in
   1 M steps: random warm-up actions only produce hard crashes, and both settle into hovering until
   the fuel runs out. Seeding the replay buffer with noisy PID flights (data an off-policy learner can
@@ -65,6 +88,8 @@ their replay buffer (see below). The checkpoints are in `checkpoints/`. What the
 ```bash
 uv run rl-train --algo ppo --level L2 --seed 1          # ~6 min on a laptop CPU
 uv run rl-train --algo sac --level L0 --seed 1          # SAC / TD3 warm up on PID demonstrations
+uv run rl-train --algo grpo --level L1 --seed 1         # critic-free, group-relative
+uv run rl-train --algo es --level L2 --seed 1           # gradient-free, ~17 min
 uv run rl-eval --agent runs/ppo_L2_s1/model.pt --level L2
 uv run rl-watch --agent runs/ppo_L2_s1/model.pt --level L2
 tensorboard --logdir runs                               # learning curves

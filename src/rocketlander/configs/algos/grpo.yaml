@@ -1,0 +1,20 @@
+# GRPO hyperparameters (see rocketlander/agents/grpo.py for meanings).
+total_steps: 5000000
+starts_per_update: 8
+group_size: 8
+learning_rate: 0.0003
+anneal_lr: true
+update_epochs: 4
+num_minibatches: 8
+clip_coef: 0.2
+max_grad_norm: 0.5
+advantage: outcome
+process_gamma: 0.99
+pretrain: none  # "bc_pid" clones the PID first; pair it with init_log_std: -2.0
+pretrain_steps: 200000
+pretrain_noise: 0.3
+pretrain_epochs: 10
+hidden: [64, 64]
+init_log_std: -0.5
+eval_interval: 500000
+eval_episodes: 20
