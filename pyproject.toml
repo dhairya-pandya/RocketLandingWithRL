@@ -39,7 +39,7 @@ packages = ["src/rocketlander"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-ra"
+addopts = "-ra -m 'not slow'"
 markers = ["slow: long-running learning tests; run with: uv run pytest -m slow"]
 filterwarnings = ["ignore:.*Box observation space.*:UserWarning"]
 

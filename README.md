@@ -6,9 +6,8 @@ on a laptop CPU, and compared against a hand-written PID controller.
 
 ![A PPO agent landing on the rolling drone ship (level L2)](media/ppo_landing_L2.gif)
 
-Status: **Phase 3 done**: environment, viewer, baselines, and the first learning agents (REINFORCE
-and PPO) trained from scratch on a laptop CPU in about 6 minutes each. SAC, TD3, GRPO and CEM/ES come
-next.
+Status: **Phase 4 done**: environment, viewer, baselines, and four learning agents (REINFORCE, PPO,
+SAC, TD3) trained on a laptop CPU. GRPO and CEM/ES come next.
 
 ## Results so far
 
@@ -28,9 +27,20 @@ Success rate on 100 held-out start states per level (seeds 10000–10099, never 
 | REINFORCE, trained on L2 | 0% | 0% | 18% | 8% | 1% |
 | REINFORCE, trained on L3 | 0% | 0% | 0% | 0% | 1% |
 | REINFORCE, trained on L4 | 0% | 0% | 0% | 2% | 1% |
+| SAC, trained on L0 | 98% | 61% | 0% | 0% | 0% |
+| SAC, trained on L1 | 99% | 87% | 0% | 0% | 0% |
+| SAC, trained on L2 | 75% | 46% | 33% | 23% | 1% |
+| SAC, trained on L3 | 0% | 0% | 0% | 0% | 0% |
+| SAC, trained on L4 | 0% | 0% | 0% | 0% | 0% |
+| TD3, trained on L0 | 92% | 87% | 4% | 2% | 0% |
+| TD3, trained on L1 | 61% | 60% | 0% | 0% | 0% |
+| TD3, trained on L2 | 13% | 40% | 52% | 37% | 12% |
+| TD3, trained on L3 | 53% | 22% | 5% | 1% | 2% |
+| TD3, trained on L4 | 0% | 0% | 0% | 0% | 0% |
 
-Each agent is one seed, trained from scratch for 5 M steps (6–8 minutes); the checkpoints are in
-`checkpoints/`. What the table shows:
+Each agent is one seed. PPO and REINFORCE learn from scratch for 5 M steps (6–8 minutes). SAC and
+TD3 train for 1 M steps (15–21 minutes) and start from 50 k steps of noisy PID demonstrations in
+their replay buffer (see below). The checkpoints are in `checkpoints/`. What the table shows:
 
 - **Randomization makes generalists.** The agent trained on L3, where wind, mass, thrust and engine
   lag change every episode, lands 95–100% on L0–L3: better than each level's own specialist, and
@@ -39,6 +49,14 @@ Each agent is one seed, trained from scratch for 5 M steps (6–8 minutes); the 
   45%. Fine-tuning the L2 agent on L3 and L4 did worse than training from scratch (55% and 4%), because
   its exploration noise had already collapsed.
 - **PPO beats REINFORCE everywhere beyond L0**, on the same network, normalization and step budget.
+- **Off-policy agents need help to explore here.** From scratch, SAC and TD3 never landed once in
+  1 M steps: random warm-up actions only produce hard crashes, and both settle into hovering until
+  the fuel runs out. Seeding the replay buffer with noisy PID flights (data an off-policy learner can
+  replay directly) makes L0 work: SAC lands on all 20 evaluation starts by about 500 k environment
+  steps, against about 1 M for PPO. It runs at about 1/18 of PPO's steps per second, though, so it
+  is slower in wall-clock time. From L1 on (TD3 60%, SAC 87%) they trail PPO, and wind (L3) defeats
+  them. That is where on-policy PPO's steady exploration wins. SAC and TD3 use γ = 0.99: the
+  demonstrations supply the long-range signal, and 0.995 scored worse in prototyping.
 
 ![A PPO agent landing in a 7.7 m/s crosswind (level L3)](media/ppo_landing_L3_wind.gif)
 
@@ -46,12 +64,13 @@ Each agent is one seed, trained from scratch for 5 M steps (6–8 minutes); the 
 
 ```bash
 uv run rl-train --algo ppo --level L2 --seed 1          # ~6 min on a laptop CPU
+uv run rl-train --algo sac --level L0 --seed 1          # SAC / TD3 warm up on PID demonstrations
 uv run rl-eval --agent runs/ppo_L2_s1/model.pt --level L2
 uv run rl-watch --agent runs/ppo_L2_s1/model.pt --level L2
 tensorboard --logdir runs                               # learning curves
 ```
 
-Hyperparameters live in `src/rocketlander/configs/algos/ppo.yaml` and `reinforce.yaml`. `rl-train`
+Hyperparameters live in `src/rocketlander/configs/algos/<algo>.yaml`. `rl-train`
 logs to TensorBoard and `runs/<name>/metrics.csv`, evaluates on held-out seeds during training,
 and saves a checkpoint with its config and git commit.
 

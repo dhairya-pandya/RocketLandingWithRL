@@ -1,3 +1,5 @@
+import numpy as np
+
 from rocketlander.cli import evaluate, record, train, watch
 from rocketlander.cli.common import make_agent
 from rocketlander.common.actor_critic import ActorCritic
@@ -37,3 +39,22 @@ def test_train_then_evaluate_watch_and_record_a_checkpoint(tmp_path, capsys):
         max_steps=20,
     )
     assert frames == 2
+
+
+def test_train_an_off_policy_agent_from_the_command_line(tmp_path):
+    run_dir = tmp_path / "sac"
+    train.main(
+        [
+            "--algo",
+            "sac",
+            "--level",
+            "L0",
+            "--total-steps",
+            "1000",
+            "--run-dir",
+            str(run_dir),
+            "--quiet",
+        ]
+    )
+    assert (run_dir / "model.pt").exists()
+    assert make_agent(str(run_dir / "model.pt")).act(np.zeros(11, dtype=np.float32)).shape == (3,)
