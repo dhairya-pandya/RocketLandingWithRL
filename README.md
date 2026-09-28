@@ -4,8 +4,10 @@ A 2D rocket learns to land on a moving, rocking drone ship in gusty wind. The ph
 environment and every reinforcement learning algorithm are written from scratch in Python, trained
 on a laptop CPU, and compared against a hand-written PID controller.
 
-Status: **Phase 1 done**: environment, physics and baselines. Learning agents (REINFORCE, PPO, SAC,
-TD3, GRPO, CEM/ES), the graphical viewer and results come in the next phases.
+![PID controller landing on the rolling drone ship (level L2)](media/pid_landing_L2.gif)
+
+Status: **Phase 2 done**: environment, physics, baselines and the graphical viewer. Learning agents
+(REINFORCE, PPO, SAC, TD3, GRPO, CEM/ES) and results come in the next phases.
 
 ## Quickstart
 
@@ -29,6 +31,29 @@ while not done:
     done = terminated or truncated
 print(info["outcome"], info["reason"])
 ```
+
+## Watch it, fly it, record it
+
+```bash
+uv run rl-watch --agent pid --level L2      # watch an agent (pid or random for now)
+uv run rl-play --level L0                   # fly it yourself
+uv run rl-record --agent pid --level L2 --seed 3 --out videos/landing.gif
+```
+
+| Keys | `rl-play` | `rl-watch` |
+|---|---|---|
+| W / S | throttle up / down (sticky) | |
+| A / D | swing the nozzle (gimbal) | |
+| Q / E | side thrusters (RCS) | |
+| R / N | restart / new start position | N: next episode |
+| Space | | pause |
+| F V T P H | toggle force arrows, velocity, trail, plots, HUD | same |
+| Esc | quit | quit |
+
+The HUD turns each landing limit green once it is met (vertical and sideways speed, tilt, spin).
+The mini-plots show the agent's actions, its reward per step and, for agents with a critic, its
+value estimate V(s). Any script can also render through Gymnasium:
+`RocketLanderEnv(level="L2", render_mode="human")` or `render_mode="rgb_array"`.
 
 ## The environment
 
