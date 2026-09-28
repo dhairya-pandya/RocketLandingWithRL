@@ -42,3 +42,8 @@ select = ["E", "F", "I", "UP", "B", "SIM", "N"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["rocketlander"]
+
+[project.scripts]
+rl-play = "rocketlander.cli.play:main"
+rl-watch = "rocketlander.cli.watch:main"
+rl-record = "rocketlander.cli.record:main"
