@@ -44,6 +44,7 @@ class LevelConfig:
     mass_scale: Range = (1.0, 1.0)
     thrust_scale: Range = (1.0, 1.0)
     engine_lag: Range = NO_RANGE
+    fuel: Range = (5_000.0, 5_000.0)  # kg; limited fuel is what makes hovering a dead end
     max_seconds: float = 40.0
 
 
@@ -97,6 +98,7 @@ def sample_setup(level: LevelConfig, rng: np.random.Generator) -> EpisodeSetup:
         dry_mass=base.dry_mass * draw(level.mass_scale),
         max_thrust=base.max_thrust * draw(level.thrust_scale),
         engine_lag=draw(level.engine_lag),
+        initial_fuel=draw(level.fuel),
     )
     ship = ShipMotion(
         sway_amplitude=draw(level.sway_amplitude),

@@ -5,6 +5,7 @@ from __future__ import annotations
 import numpy as np
 
 from rocketlander.envs.physics import GRAVITY, RocketParams
+from rocketlander.envs.rocket_env import FUEL_SCALE
 
 LEG_CLEARANCE = 11.0  # centre of mass to leg tips
 
@@ -20,7 +21,7 @@ class PIDAgent:
         theta = float(np.arctan2(obs[4], obs[5]))
         omega = float(obs[6])
         deck_angle = float(obs[7]) * 0.1
-        mass = p.dry_mass + float(obs[9]) * p.initial_fuel
+        mass = p.dry_mass + float(obs[9]) * FUEL_SCALE
         altitude = max(0.0, height - LEG_CLEARANCE)
 
         # Vertical: constant-deceleration descent profile with feedforward.
