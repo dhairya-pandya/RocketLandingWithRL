@@ -11,6 +11,7 @@ import torch
 from torch import nn
 
 from rocketlander.common.actor_critic import ActorCritic
+from rocketlander.common.curriculum import parse_level
 from rocketlander.common.logger import Logger
 from rocketlander.common.normalization import RewardScaler
 from rocketlander.common.rollout_stats import RolloutStats
@@ -55,7 +56,8 @@ def train_reinforce(
     agent = agent or ActorCritic(config.hidden, config.init_log_std)
     policy_opt = torch.optim.Adam(agent.policy.parameters(), lr=config.learning_rate)
     critic_opt = torch.optim.Adam(agent.critic.parameters(), lr=config.learning_rate)
-    envs = VecEnv(lambda: RocketLanderEnv(level=level), config.num_envs, seed)
+    eval_level, schedule = parse_level(level, seed)
+    envs = VecEnv(lambda: RocketLanderEnv(level=eval_level), config.num_envs, seed, schedule)
     scaler = RewardScaler(config.num_envs, config.gamma)
     stats = RolloutStats(config.num_envs)
     live = [{"obs": [], "act": [], "rew": []} for _ in range(config.num_envs)]
@@ -85,10 +87,10 @@ def train_reinforce(
             obs = step.obs
 
         metrics = _update(agent, policy_opt, critic_opt, config, episodes)
-        metrics |= stats.summary()
+        metrics |= stats.summary() | (schedule.summary() if schedule else {})
         metrics["train/steps_per_second"] = global_step / (time.time() - start)
         if global_step >= next_eval or global_step >= config.total_steps:
-            metrics |= eval_metrics(agent, level, config.eval_episodes)
+            metrics |= eval_metrics(agent, eval_level, config.eval_episodes)
             next_eval += config.eval_interval
         logger.log(global_step, metrics)
     return agent

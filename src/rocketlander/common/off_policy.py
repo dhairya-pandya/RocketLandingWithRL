@@ -11,6 +11,7 @@ import torch
 
 from rocketlander.agents.pid import PIDAgent
 from rocketlander.common.actor_critic import ACT_SIZE
+from rocketlander.common.curriculum import parse_level
 from rocketlander.common.logger import Logger
 from rocketlander.common.replay_buffer import ReplayBuffer
 from rocketlander.common.rollout_stats import RolloutStats
@@ -31,7 +32,8 @@ def train_off_policy(
     """Collect with `explore`, store every transition, and call `update` on replayed batches."""
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
-    envs = VecEnv(lambda: RocketLanderEnv(level=level), config.num_envs, seed)
+    eval_level, schedule = parse_level(level, seed)
+    envs = VecEnv(lambda: RocketLanderEnv(level=eval_level), config.num_envs, seed, schedule)
     buffer = ReplayBuffer(config.buffer_size, OBS_SIZE, ACT_SIZE, seed)
     stats = RolloutStats(config.num_envs)
 
@@ -70,14 +72,14 @@ def train_off_policy(
                 metrics = update(buffer.sample(config.batch_size))
 
         if global_step >= next_log:
-            row = metrics | stats.summary()
+            row = metrics | stats.summary() | (schedule.summary() if schedule else {})
             row["train/steps_per_second"] = global_step / (time.time() - start)
             if global_step >= next_eval:
-                row |= eval_metrics(agent, level, config.eval_episodes)
+                row |= eval_metrics(agent, eval_level, config.eval_episodes)
                 next_eval += config.eval_interval
             logger.log(global_step, row)
             next_log += config.log_interval
-    logger.log(global_step, eval_metrics(agent, level, config.eval_episodes))
+    logger.log(global_step, eval_metrics(agent, eval_level, config.eval_episodes))
     return agent
 
 
