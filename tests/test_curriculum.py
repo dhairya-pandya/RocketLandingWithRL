@@ -1,7 +1,12 @@
 import numpy as np
 import pytest
 
+from rocketlander.agents.sac import SACConfig, train_sac
+from rocketlander.cli import train
+from rocketlander.common import off_policy
+from rocketlander.common.config import load_config
 from rocketlander.common.curriculum import LevelSchedule, parse_level
+from rocketlander.common.logger import Logger
 from rocketlander.common.vec_env import VecEnv
 from rocketlander.envs.rocket_env import RocketLanderEnv
 
@@ -60,8 +65,6 @@ def test_vec_env_records_finished_episodes_to_the_schedule():
 
 @pytest.mark.parametrize("algo", ["grpo", "es"])
 def test_train_cli_rejects_level_mixes_for_single_level_algorithms(algo, tmp_path):
-    from rocketlander.cli import train
-
     with pytest.raises(SystemExit):
         train.main(["--algo", algo, "--level", "mix:L0,L1", "--run-dir", str(tmp_path / "run")])
     assert not (tmp_path / "run").exists()
@@ -69,8 +72,6 @@ def test_train_cli_rejects_level_mixes_for_single_level_algorithms(algo, tmp_pat
 
 @pytest.mark.parametrize("algo", ["ppo", "sac"])
 def test_train_cli_runs_a_curriculum_and_evaluates_on_the_last_level(algo, tmp_path, capsys):
-    from rocketlander.cli import train
-
     steps = "4096" if algo == "ppo" else "2000"
     train.main(
         [
@@ -87,3 +88,23 @@ def test_train_cli_runs_a_curriculum_and_evaluates_on_the_last_level(algo, tmp_p
     )
     assert "Held-out success on L2" in capsys.readouterr().out
     assert (tmp_path / "run" / "model.pt").exists()
+
+
+def test_pid_warmup_episodes_do_not_count_towards_a_curriculum(tmp_path, monkeypatch):
+    """The gate must measure the learner: demonstration episodes are not recorded."""
+    schedule = LevelSchedule("curriculum", ["L0", "L1"], seed=0, threshold=0.5, window=5)
+    monkeypatch.setattr(off_policy, "parse_level", lambda level, seed: ("L1", schedule))
+    config = load_config(
+        SACConfig, "sac", {"total_steps": 4000, "learning_starts": 10_000, "eval_episodes": 1}
+    )
+    train_sac(config, "curriculum:L0,L1", 0, Logger(tmp_path, verbose=False))
+    assert schedule.unlocked == 1
+    assert sum(len(r) for r in schedule.results.values()) == 0
+
+
+@pytest.mark.parametrize("spec", ["L9", "mix:L0,L9", "mix:"])
+def test_train_cli_reports_a_bad_level_spec_as_a_usage_error(spec, tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        train.main(["--level", spec, "--run-dir", str(tmp_path / "run")])
+    assert "error:" in capsys.readouterr().err
+    assert not (tmp_path / "run").exists()

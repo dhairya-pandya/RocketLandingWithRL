@@ -144,7 +144,7 @@ uv run rl-train --algo es --level L2 --seed 1           # gradient-free, ~17 min
 uv run rl-train --algo ppo --level mix:L0,L1,L2,L3,L4 --total-steps 10000000
 uv run rl-train --algo ppo --level curriculum:L0,L1,L2,L3,L4 --total-steps 10000000
 uv run rl-eval --agent runs/ppo_L2_s1/model.pt --level L2
-uv run rl-eval --agent runs/*/model.pt --level L4       # several seeds: IQM with a 95% interval
+uv run rl-eval --agent runs/ppo_mix_L0L1L2L3L4_s*/model.pt --level L4  # seeds of one recipe: IQM
 uv run rl-robust --agent checkpoints/ppo_L3.pt --level L2 --param wind_mean
 uv run rl-watch --agent runs/ppo_L2_s1/model.pt --level L2
 tensorboard --logdir runs                               # learning curves

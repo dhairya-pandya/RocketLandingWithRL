@@ -58,6 +58,7 @@ def train_off_policy(
         else:
             with torch.no_grad():
                 actions = explore(agent.normalized(obs))
+        envs.record_outcomes = global_step >= config.learning_starts
         step = envs.step(actions)
         buffer.add(
             obs, actions, step.rewards * config.reward_scale, step.final_obs, step.terminated

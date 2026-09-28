@@ -38,6 +38,8 @@ class VecEnv:
         self.envs = [make_env() for _ in range(n)]
         self.seed = seed
         self.schedule = schedule
+        # Off while a demonstrator acts: the schedule should track the learner.
+        self.record_outcomes = True
 
     @property
     def num_envs(self) -> int:
@@ -61,7 +63,7 @@ class VecEnv:
         terminated = np.array([r[2] for r in results])
         truncated = np.array([r[3] for r in results])
         for i in np.flatnonzero(terminated | truncated):
-            if self.schedule:
+            if self.schedule and self.record_outcomes:
                 info = results[i][4]
                 self.schedule.record(info["level"], info["outcome"] == "landed")
             obs[i] = self.envs[i].reset(options=self._options())[0]  # RNG continues

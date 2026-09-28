@@ -27,7 +27,10 @@ def main(argv: list[str] | None = None) -> None:
     args = parser.parse_args(argv)
 
     torch.set_num_threads(1)  # small networks: one thread is fastest and leaves cores free
-    eval_level, schedule = parse_level(args.level, args.seed)  # validates the spec early
+    try:  # validate the spec before anything is written
+        eval_level, schedule = parse_level(args.level, args.seed)
+    except ValueError as error:
+        parser.error(str(error))
     algo = ALGORITHMS[args.algo]
     if schedule is not None and not algo.level_schedules:
         parser.error(f"{args.algo} trains on a single level, not {args.level!r}")
