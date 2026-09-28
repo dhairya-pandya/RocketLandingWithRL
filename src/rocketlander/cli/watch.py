@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pygame
 
-from rocketlander.cli.common import AGENTS, base_parser, make_agent, step_and_draw
+from rocketlander.cli.common import agent_argument, base_parser, make_agent, step_and_draw
 from rocketlander.envs.rocket_env import RocketLanderEnv
 from rocketlander.render.renderer import Renderer
 
@@ -13,7 +13,7 @@ HOLD_SECONDS = 2.0  # keep showing the outcome before the next episode
 
 def main(argv: list[str] | None = None) -> None:
     parser = base_parser("Watch an agent land the rocket.")
-    parser.add_argument("--agent", default="pid", choices=sorted(AGENTS))
+    agent_argument(parser)
     parser.add_argument("--episodes", type=int, default=5)
     parser.add_argument("--headless", action="store_true", help="no window (for tests)")
     parser.add_argument("--max-frames", type=int, default=None)

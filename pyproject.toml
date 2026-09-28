@@ -57,3 +57,5 @@ known-first-party = ["rocketlander"]
 rl-play = "rocketlander.cli.play:main"
 rl-watch = "rocketlander.cli.watch:main"
 rl-record = "rocketlander.cli.record:main"
+rl-train = "rocketlander.cli.train:main"
+rl-eval = "rocketlander.cli.evaluate:main"
