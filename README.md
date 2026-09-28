@@ -18,18 +18,29 @@ Success rate on 100 held-out start states per level (seeds 10000–10099, never 
 |---|---|---|---|---|---|
 | Random | 0% | 0% | 0% | 0% | 0% |
 | PID (hand-written) | 100% | 100% | 98% | 45% | 45% |
-| REINFORCE, trained on L0 | 100% | 87% | 0% | 0% | 0% |
 | PPO, trained on L0 | 97% | 52% | 0% | 0% | 0% |
 | PPO, trained on L1 | 42% | 97% | 0% | 0% | 0% |
 | PPO, trained on L2 | 46% | 85% | 94% | 55% | 10% |
+| **PPO, trained on L3** | **100%** | **99%** | **99%** | **95%** | 10% |
+| PPO, trained on L4 | 0% | 0% | 4% | 12% | 46% |
+| REINFORCE, trained on L0 | 100% | 87% | 0% | 0% | 0% |
+| REINFORCE, trained on L1 | 90% | 50% | 0% | 0% | 0% |
+| REINFORCE, trained on L2 | 0% | 0% | 18% | 8% | 1% |
+| REINFORCE, trained on L3 | 0% | 0% | 0% | 0% | 1% |
+| REINFORCE, trained on L4 | 0% | 0% | 0% | 2% | 1% |
 
-Each agent is one seed, trained for 5 M steps (about 6 minutes); the checkpoints are in
-`checkpoints/`. On its own level each PPO agent lands 94–97% of the time, and more softly than the
-PID (0.97 m/s against 1.43 m/s on L2). The L2 agent even beats the PID on the unseen, windy L3.
-Transfer is uneven, though: agents trained without a rolling deck never saw those observations
-change and fail on L2+, and the L2 agent has unlearned the static pad of L0. Training across levels
-(curriculum and domain randomization) is Phase 6. REINFORCE also masters L0, but only after about
-4.5 M steps, against about 1 M for PPO.
+Each agent is one seed, trained from scratch for 5 M steps (6–8 minutes); the checkpoints are in
+`checkpoints/`. What the table shows:
+
+- **Randomization makes generalists.** The agent trained on L3, where wind, mass, thrust and engine
+  lag change every episode, lands 95–100% on L0–L3: better than each level's own specialist, and
+  more than twice the PID in wind. Agents trained on one fixed setting overfit to it.
+- **L4 (far, fast booster return) is still hard.** The best learned agent matches the PID at about
+  45%. Fine-tuning the L2 agent on L3 and L4 did worse than training from scratch (55% and 4%), because
+  its exploration noise had already collapsed.
+- **PPO beats REINFORCE everywhere beyond L0**, on the same network, normalization and step budget.
+
+![A PPO agent landing in a 7.7 m/s crosswind (level L3)](media/ppo_landing_L3_wind.gif)
 
 ## Train your own
 
