@@ -8,7 +8,9 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from rocketlander.agents.base import Agent
+from rocketlander.envs.levels import LevelConfig
 from rocketlander.envs.rocket_env import RocketLanderEnv
+from rocketlander.stats import wilson_interval
 
 EVAL_SEEDS = list(range(10_000, 10_100))  # held out: training envs are seeded below 10 000
 
@@ -23,8 +25,13 @@ class EvalSummary:
     mean_fuel_used: float
     reasons: Counter = field(default_factory=Counter)
 
+    @property
+    def success_ci(self) -> tuple[float, float]:
+        """95% Wilson interval: 100 episodes pin a success rate down to roughly ±10 points."""
+        return wilson_interval(round(self.success_rate * self.episodes), self.episodes)
 
-def evaluate(agent: Agent, level: str, seeds: list[int]) -> EvalSummary:
+
+def evaluate(agent: Agent, level: str | LevelConfig, seeds: list[int]) -> EvalSummary:
     env = RocketLanderEnv(level=level)
     returns, fuel, speeds = [], [], []
     reasons: Counter = Counter()
@@ -43,7 +50,7 @@ def evaluate(agent: Agent, level: str, seeds: list[int]) -> EvalSummary:
             landed += 1
             speeds.append(info["touchdown_speed"])
     return EvalSummary(
-        level=level,
+        level=env.level.name,
         episodes=len(seeds),
         success_rate=landed / len(seeds),
         mean_task_return=float(np.mean(returns)),

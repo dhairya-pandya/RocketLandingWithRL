@@ -1,0 +1,6 @@
+# Robustness sweeps: each parameter is pinned to one value per row, everything else stays as
+# the level samples it. Values past the training ranges test how gracefully a policy degrades.
+wind_mean: [0, 4, 8, 12, 16]
+mass_scale: [0.8, 0.9, 1.0, 1.1, 1.2, 1.3]
+thrust_scale: [0.8, 0.9, 1.0, 1.1, 1.2]
+engine_lag: [0.0, 0.1, 0.2, 0.3, 0.4]

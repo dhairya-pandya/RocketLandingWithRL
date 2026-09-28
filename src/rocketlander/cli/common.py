@@ -32,9 +32,14 @@ def agent_argument(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--agent", default="pid", help=f"{', '.join(sorted(AGENTS))} or a .pt path")
 
 
-def base_parser(description: str, seed: bool = True) -> argparse.ArgumentParser:
+def base_parser(
+    description: str, seed: bool = True, level_specs: bool = False
+) -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=description)
-    parser.add_argument("--level", default="L0", choices=available_levels())
+    if level_specs:  # training also accepts "mix:L0,L3" and "curriculum:L0,L1,L2,L3,L4"
+        parser.add_argument("--level", default="L0")
+    else:
+        parser.add_argument("--level", default="L0", choices=available_levels())
     if seed:
         parser.add_argument("--seed", type=int, default=0)
     return parser

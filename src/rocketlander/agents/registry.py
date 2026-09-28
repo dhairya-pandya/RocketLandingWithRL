@@ -21,6 +21,7 @@ class Algorithm:
     config_cls: type
     train: Callable[..., Any]
     agent_cls: type  # rebuilt from a checkpoint's "architecture"
+    level_schedules: bool = True  # can train on "mix:..." and "curriculum:..." level specs
 
 
 ALGORITHMS: dict[str, Algorithm] = {
@@ -28,6 +29,6 @@ ALGORITHMS: dict[str, Algorithm] = {
     "reinforce": Algorithm(ReinforceConfig, train_reinforce, ActorCritic),
     "sac": Algorithm(SACConfig, train_sac, SACAgent),
     "td3": Algorithm(TD3Config, train_td3, TD3Agent),
-    "grpo": Algorithm(GRPOConfig, train_grpo, PolicyAgent),
-    "es": Algorithm(ESConfig, train_es, ESAgent),
+    "grpo": Algorithm(GRPOConfig, train_grpo, PolicyAgent, level_schedules=False),
+    "es": Algorithm(ESConfig, train_es, ESAgent, level_schedules=False),
 }

@@ -78,7 +78,7 @@ class RocketLanderEnv(gym.Env):
         """shaping_gamma 1.0 (default): pure progress shaping, no hidden per-step bonus."""
         if reward_mode not in ("shaped", "sparse"):
             raise ValueError(f"reward_mode must be 'shaped' or 'sparse', got {reward_mode!r}")
-        self.level: LevelConfig = get_level(level)
+        self._set_level(level)
         self.reward_mode = reward_mode
         self.shaping_gamma = shaping_gamma
         if render_mode not in (None, *self.metadata["render_modes"]):
@@ -86,7 +86,6 @@ class RocketLanderEnv(gym.Env):
         self.render_mode = render_mode
         self._renderer = None
         self.bounds = Bounds()
-        self.max_steps = int(self.level.max_seconds / (PHYSICS_DT * PHYSICS_STEPS_PER_ACTION))
         self.action_space = gym.spaces.Box(-1.0, 1.0, shape=(3,), dtype=np.float32)
         self.observation_space = gym.spaces.Box(
             -np.inf, np.inf, shape=(OBS_SIZE,), dtype=np.float32
@@ -100,6 +99,8 @@ class RocketLanderEnv(gym.Env):
         self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[np.ndarray, dict[str, Any]]:
         super().reset(seed=seed)
+        if options and "level" in options:  # switch difficulty for this and later episodes
+            self._set_level(options["level"])
         if options and "state" in options:
             self.set_state(options["state"])
         else:
@@ -158,6 +159,7 @@ class RocketLanderEnv(gym.Env):
             "reason": judgement.reason if judgement.done else ("time limit" if truncated else ""),
             "touchdown_speed": judgement.touchdown_speed,
             "fuel_used": s.setup.params.initial_fuel - s.rocket.fuel,
+            "level": self.level.name,
         }
         if self.render_mode == "human":
             self.render()
@@ -211,6 +213,10 @@ class RocketLanderEnv(gym.Env):
         if self._renderer is not None:
             self._renderer.close()
             self._renderer = None
+
+    def _set_level(self, level: str | LevelConfig) -> None:
+        self.level: LevelConfig = level if isinstance(level, LevelConfig) else get_level(level)
+        self.max_steps = int(self.level.max_seconds / (PHYSICS_DT * PHYSICS_STEPS_PER_ACTION))
 
     def _deck(self) -> DeckState:
         assert self._state is not None

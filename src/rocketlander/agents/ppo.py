@@ -10,6 +10,7 @@ import torch
 from torch import nn
 
 from rocketlander.common.actor_critic import ACT_SIZE, ActorCritic
+from rocketlander.common.curriculum import parse_level
 from rocketlander.common.gae import compute_gae
 from rocketlander.common.logger import Logger
 from rocketlander.common.normalization import RewardScaler
@@ -46,7 +47,8 @@ def train_ppo(
     torch.manual_seed(seed)
     agent = agent or ActorCritic(config.hidden, config.init_log_std)
     optimizer = torch.optim.Adam(agent.parameters(), lr=config.learning_rate, eps=1e-5)
-    envs = VecEnv(lambda: RocketLanderEnv(level=level), config.num_envs, seed)
+    eval_level, schedule = parse_level(level, seed)
+    envs = VecEnv(lambda: RocketLanderEnv(level=eval_level), config.num_envs, seed, schedule)
     scaler = RewardScaler(config.num_envs, config.gamma)
     stats = RolloutStats(config.num_envs)
     n_steps, n_envs = config.num_steps, config.num_envs
@@ -92,10 +94,10 @@ def train_ppo(
         metrics = _update(agent, optimizer, config, obs_buf, act_buf, logp_buf, advantages, returns)
 
         global_step = update * n_steps * n_envs
-        metrics |= stats.summary()
+        metrics |= stats.summary() | (schedule.summary() if schedule else {})
         metrics["train/steps_per_second"] = global_step / (time.time() - start)
         if global_step >= next_eval or update == num_updates:
-            metrics |= eval_metrics(agent, level, config.eval_episodes)
+            metrics |= eval_metrics(agent, eval_level, config.eval_episodes)
             next_eval += config.eval_interval
         logger.log(global_step, metrics)
     return agent
