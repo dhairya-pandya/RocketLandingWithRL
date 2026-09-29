@@ -28,8 +28,11 @@ def train_off_policy(
     logger: Logger,
     explore: Callable[[torch.Tensor], np.ndarray],
     update: Callable[[dict], dict[str, float]],
+    snap: Callable[[np.ndarray], np.ndarray] | None = None,
 ) -> Any:
-    """Collect with `explore`, store every transition, and call `update` on replayed batches."""
+    """Collect with `explore`, store every transition, and call `update` on replayed batches.
+
+    `snap` maps warm-up actions onto the actions the agent can take (DQN's grid)."""
     torch.manual_seed(seed)
     rng = np.random.default_rng(seed)
     eval_level, schedule = parse_level(level, seed)
@@ -53,8 +56,12 @@ def train_off_policy(
             actions = np.stack([warmup_agent.act(o) for o in obs])
             actions += rng.normal(0.0, config.warmup_noise, actions.shape)
             actions = np.clip(actions, -1.0, 1.0).astype(np.float32)
+            if snap is not None:
+                actions = snap(actions)
         elif global_step < config.learning_starts:  # uniform random actions fill the buffer
             actions = rng.uniform(-1.0, 1.0, size=(config.num_envs, ACT_SIZE)).astype(np.float32)
+            if snap is not None:
+                actions = snap(actions)
         else:
             with torch.no_grad():
                 actions = explore(agent.normalized(obs))

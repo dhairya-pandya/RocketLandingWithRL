@@ -6,8 +6,9 @@ on a laptop CPU, and compared against a hand-written PID controller.
 
 ![A PPO agent landing on the rolling drone ship (level L2)](media/ppo_landing_L2.gif)
 
-Status: **complete (Phase 7)**: environment, viewer, baselines, six learning agents
-(REINFORCE, PPO, SAC, TD3, GRPO, evolution strategies), training on level mixes and curricula, an
+Status: **complete (Phase 8)**: environment, viewer, baselines, seven learning agents
+(REINFORCE, PPO, SAC, TD3, GRPO, evolution strategies, DQN) and a model-predictive planner, training
+on level mixes and curricula, an
 evaluation suite with confidence intervals and robustness sweeps, a side-by-side comparison viewer,
 and a generated results report: **[RESULTS.md](RESULTS.md)**.
 
@@ -21,6 +22,7 @@ Success rate on 100 held-out start states per level (seeds 10000–10099, never 
 |---|---|---|---|---|---|
 | Random | 0% | 0% | 0% | 0% | 0% |
 | PID (hand-written) | 100% | 100% | 98% | 45% | 45% |
+| MPC planner (no learning) | 85% | 57% | 48% | 34% | 14% |
 | PPO, trained on L0 | 97% | 52% | 0% | 0% | 0% |
 | PPO, trained on L1 | 42% | 97% | 0% | 0% | 0% |
 | PPO, trained on L2 | 46% | 85% | 94% | 55% | 10% |
@@ -43,6 +45,11 @@ Success rate on 100 held-out start states per level (seeds 10000–10099, never 
 | TD3, trained on L2 | 13% | 40% | 52% | 37% | 12% |
 | TD3, trained on L3 | 53% | 22% | 5% | 1% | 2% |
 | TD3, trained on L4 | 0% | 0% | 0% | 0% | 0% |
+| DQN, trained on L0 | 47% | 8% | 0% | 0% | 0% |
+| DQN, trained on L1 | 0% | 0% | 0% | 0% | 0% |
+| DQN, trained on L2 | 0% | 0% | 0% | 0% | 0% |
+| DQN, trained on L3 | 0% | 1% | 1% | 0% | 0% |
+| DQN, trained on L4 | 0% | 0% | 0% | 1% | 1% |
 | GRPO, trained on L0 | 100% | 63% | 0% | 0% | 0% |
 | GRPO, trained on L1 | 100% | 89% | 0% | 0% | 0% |
 | GRPO, trained on L2 | 100% | 82% | 86% | 33% | 9% |
@@ -96,6 +103,20 @@ steps of noisy PID demonstrations in their replay buffer (see below). The checkp
   them. That is where on-policy PPO's steady exploration wins. SAC and TD3 use γ = 0.99: the
   demonstrations supply the long-range signal, and 0.995 scored worse in prototyping.
 
+- **Two stretch agents, for contrast.** The **MPC planner** (`--agent mpc`) learns nothing: every 5
+  steps it searches, with the cross-entropy method, for the best next second of actions in a nominal
+  model decoded from the observation (nominal mass and thrust, no wind, a deck that stands still),
+  at about real time on one core. It lands 85% of L0 starts with the softest touchdowns of any agent
+  (0.02 m/s on L0, against 0.33 for PPO and 1.36 for the PID), and fails exactly where its model is
+  wrong: the swaying ship and the wind (34% on L3). **DQN** chooses among 75 discrete actions (5
+  throttle × 5 gimbal × 3 RCS levels). The grid needs levels packed near hover (on a uniform grid
+  even the PID, snapped to it, never lands), and a flat 75-output Q-network never landed at all: its
+  greedy `max` picked actions it had barely tried. A branched network, `Q = V(s) + A_throttle +
+  A_gimbal + A_rcs`, slow target updates and almost no random actions reach 47% on L0 (seeds 2 and
+  3: 29% and 22%), but almost nothing once the deck moves (8% on L1 for that agent, at most 1% for
+  agents trained on L1–L4). An actor that outputs a continuous action (SAC, PPO) is the better fit
+  for this task.
+
 ![A PPO agent landing in a 7.7 m/s crosswind (level L3)](media/ppo_landing_L3_wind.gif)
 
 ![One PPO agent trained on a mix of all levels landing a booster return that starts 770 m up
@@ -143,6 +164,8 @@ uv run rl-train --algo ppo --level L2 --seed 1          # ~6 min on a laptop CPU
 uv run rl-train --algo sac --level L0 --seed 1          # SAC / TD3 warm up on PID demonstrations
 uv run rl-train --algo grpo --level L1 --seed 1         # critic-free, group-relative
 uv run rl-train --algo es --level L2 --seed 1           # gradient-free, ~17 min
+uv run rl-train --algo dqn --level L0 --seed 1          # discrete actions, ~12 min
+uv run rl-eval --agent mpc --level L0 --episodes 20     # a planner: nothing to train
 uv run rl-train --algo ppo --level mix:L0,L1,L2,L3,L4 --total-steps 10000000
 uv run rl-train --algo ppo --level curriculum:L0,L1,L2,L3,L4 --total-steps 10000000
 uv run rl-eval --agent runs/ppo_L2_s1/model.pt --level L2
@@ -213,13 +236,13 @@ value estimate V(s). Any script can also render through Gymnasium:
 ```bash
 uv run rl-compare --viewer --agent pid checkpoints/ppo_L3.pt checkpoints/es_L2.pt --level L3 --seed 4
 uv run rl-compare --agent pid checkpoints/ppo_mix.pt --level L4 --seed 2 --record videos/race.gif
-uv run rl-compare --report results.yaml     # rebuilds RESULTS.md and media/results/ (~10 min)
+uv run rl-compare --report results.yaml     # rebuilds RESULTS.md and media/results/ (~1 h)
 ```
 
 Every agent flies the same start state, ship motion and wind, drawn as colour-coded rockets with
 their trails and a live legend; a rocket that lands rides along with the deck. Space pauses, N
 starts the next seed. The report evaluates every agent listed in `results.yaml` on every level in
-parallel processes, plots learning curves from `runs/<name>/metrics.csv` when those exist, and keeps
+parallel processes, plots learning curves from each agent's `run:` directory when it exists, and keeps
 the "Lessons learned" section of RESULTS.md when it is rebuilt.
 
 ![PID, PPO, ES and SAC flying the same windy start (level L3)](media/results/race_L3_seed4.gif)

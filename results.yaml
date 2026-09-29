@@ -8,6 +8,7 @@ workers: 8
 agents:
   - {name: Random, agent: random}
   - {name: PID, agent: pid}
+  - {name: MPC planner, agent: mpc}
   - {name: REINFORCE on L0, agent: checkpoints/reinforce_L0.pt, run: runs/final_reinforce_L0, trained_on: L0}
   - {name: REINFORCE on L1, agent: checkpoints/reinforce_L1.pt, run: runs/all_reinforce_L1, trained_on: L1}
   - {name: REINFORCE on L2, agent: checkpoints/reinforce_L2.pt, run: runs/all_reinforce_L2, trained_on: L2}
@@ -35,6 +36,11 @@ agents:
   - {name: GRPO on L2, agent: checkpoints/grpo_L2.pt, run: runs/final_grpo_L2, trained_on: L2}
   - {name: GRPO on L3, agent: checkpoints/grpo_L3.pt, run: runs/final_grpo_L3, trained_on: L3}
   - {name: GRPO on L4, agent: checkpoints/grpo_L4.pt, run: runs/final_grpo_L4, trained_on: L4}
+  - {name: DQN on L0, agent: checkpoints/dqn_L0.pt, run: runs/final_dqn_L0, trained_on: L0}
+  - {name: DQN on L1, agent: checkpoints/dqn_L1.pt, run: runs/final_dqn_L1, trained_on: L1}
+  - {name: DQN on L2, agent: checkpoints/dqn_L2.pt, run: runs/final_dqn_L2, trained_on: L2}
+  - {name: DQN on L3, agent: checkpoints/dqn_L3.pt, run: runs/final_dqn_L3, trained_on: L3}
+  - {name: DQN on L4, agent: checkpoints/dqn_L4.pt, run: runs/final_dqn_L4, trained_on: L4}
   - {name: ES on L0, agent: checkpoints/es_L0.pt, run: runs/final_es_L0, trained_on: L0}
   - {name: ES on L1, agent: checkpoints/es_L1.pt, run: runs/final_es_L1, trained_on: L1}
   - {name: ES on L2, agent: checkpoints/es_L2.pt, run: runs/final_es_L2, trained_on: L2}

@@ -8,7 +8,7 @@ import pygame
 from rocketlander.envs.landing import Outcome
 from rocketlander.race import Race, Racer
 from rocketlander.render import scene
-from rocketlander.render.hud import BAD, GOOD, TEXT, _panel
+from rocketlander.render.hud import BAD, GOOD, TEXT, panel
 from rocketlander.render.renderer import Renderer
 
 STATUS_COLORS = {Outcome.LANDED: GOOD, Outcome.CRASHED: BAD, Outcome.FAILED: BAD}
@@ -48,7 +48,9 @@ class RaceRenderer(Renderer):
             elif not r.done:
                 self._emit_engine(r.frame, dt)
         corners = self.camera.to_world(np.array([[0, self.camera.height], [self.camera.width, 0]]))
-        self.particles.emit_wind(corners[0], corners[1], race.racers[0].frame.wind_speed, dt)
+        self.particles.emit_wind(
+            corners[0], corners[1], race.racers[flying[0]].frame.wind_speed, dt
+        )
         self.particles.update(dt)
         self._hide_particles_inside_hull(deck)
 
@@ -69,7 +71,7 @@ class RaceRenderer(Renderer):
 
     def _draw_legend(self, race: Race, level: str) -> None:
         font, s = self.hud.font, self.surface
-        _panel(s, pygame.Rect(10, 10, 330, 34 + 24 * len(race.racers)))
+        panel(s, pygame.Rect(10, 10, 330, 34 + 24 * len(race.racers)))
         s.blit(font.render(f"{level}   t = {race.time:5.1f} s", True, TEXT), (20, 18))
         for i, r in enumerate(race.racers):
             y = 44 + 24 * i

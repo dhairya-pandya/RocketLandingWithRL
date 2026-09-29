@@ -95,6 +95,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--headless", action="store_true", help="no window (for tests)")
     parser.add_argument("--max-frames", type=int, default=None)
     args = parser.parse_args(argv)
+    if not (args.viewer or args.record or args.report):
+        parser.error("choose at least one of --viewer, --record or --report")
     if args.report:
         from rocketlander.report import build_report, load_report_config
 

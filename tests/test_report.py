@@ -41,7 +41,8 @@ def test_read_curve_turns_steps_into_minutes(tmp_path):
     assert steps == [1000] and minutes == pytest.approx([1000 / 100 / 60]) and success == [0.5]
 
 
-def test_build_report_writes_tables_and_figures_and_keeps_the_lessons(tmp_path):
+def test_build_report_writes_tables_and_figures_and_keeps_the_lessons(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
     config = load_report_config(
         yaml.safe_load("""
 out: RESULTS.md
@@ -57,7 +58,7 @@ robustness_agents: [PID]
 """)
     )
     (tmp_path / "RESULTS.md").write_text("old table\n\n## Lessons learned\n\nKeep me.\n")
-    out = build_report(config, tmp_path)
+    out = build_report(config)
     text = out.read_text()
     assert "| PID | **100% (44–100)** |" in text and "| Random | 0% (0–56) |" in text
     assert text.endswith("## Lessons learned\n\nKeep me.\n") and "old table" not in text
@@ -69,6 +70,7 @@ def test_line_style_colours_by_algorithm_and_dashes_level_mixes():
     assert line_style("checkpoints/ppo_mix.pt")["linestyle"] == "--"
     assert line_style("checkpoints/ppo_curriculum.pt")["linestyle"] == ":"
     assert line_style("pid")["color"] == "tab:gray"
+    assert line_style("checkpoints/dqn_L0.pt")["color"] == "tab:pink"
 
 
 def test_compare_cli_builds_a_report_from_yaml(tmp_path, monkeypatch, capsys):

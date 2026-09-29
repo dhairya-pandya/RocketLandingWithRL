@@ -6,7 +6,7 @@ from dataclasses import dataclass, field, replace
 
 import numpy as np
 
-from rocketlander.agents.base import Agent
+from rocketlander.agents.base import Agent, start_episode
 from rocketlander.envs.landing import Outcome
 from rocketlander.envs.physics import RocketState
 from rocketlander.envs.rocket_env import Frame, RocketLanderEnv
@@ -61,6 +61,7 @@ class Race:
                 label = f"{label} {seen[label]}"
             env = RocketLanderEnv(level=level)
             obs, _ = env.reset(seed=seed)
+            start_episode(agent)
             color = COLORS[i % len(COLORS)]
             self.racers.append(Racer(label, color, agent, env, obs, env.frame()))
         self.time = 0.0

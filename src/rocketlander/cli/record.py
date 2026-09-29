@@ -7,6 +7,7 @@ from pathlib import Path
 import imageio.v3 as iio
 import pygame
 
+from rocketlander.agents.base import start_episode
 from rocketlander.cli.common import agent_argument, base_parser, make_agent, step_and_draw
 from rocketlander.envs.rocket_env import RocketLanderEnv
 from rocketlander.render.renderer import Renderer
@@ -27,6 +28,7 @@ def record(
     renderer = Renderer(window=False)
     agent = make_agent(agent_name)
     obs, _ = env.reset(seed=seed)
+    start_episode(agent)
     size = (int(renderer.surface.get_width() * scale), int(renderer.surface.get_height() * scale))
     frames, step, done = [], 0, False
 

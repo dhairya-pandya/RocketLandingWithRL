@@ -12,6 +12,7 @@ from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import torch
 from matplotlib.figure import Figure  # the object API needs no window or backend
 
 from rocketlander.cli.common import AGENTS, make_agent
@@ -30,6 +31,7 @@ ALGO_COLORS = {
     "td3": "tab:red",
     "grpo": "tab:purple",
     "es": "tab:brown",
+    "dqn": "tab:pink",
 }
 
 
@@ -105,7 +107,10 @@ def success_table(config: ReportConfig) -> dict[tuple[str, str], tuple[float, in
     keys = [(a.name, level) for a in config.agents for level in config.levels]
     paths = {a.name: a.agent for a in config.agents}
     jobs = [(paths[name], level, config.episodes) for name, level in keys]
-    with ProcessPoolExecutor(config.workers) as pool:
+    # one torch thread per worker process, or the workers fight over the CPU cores
+    with ProcessPoolExecutor(
+        config.workers, initializer=torch.set_num_threads, initargs=(1,)
+    ) as pool:
         return dict(zip(keys, pool.map(_success, jobs), strict=True))
 
 
@@ -248,10 +253,11 @@ def kept_lessons(old: str, out: Path) -> str:
     return f"{LESSONS}\n\n(Your notes go here.)\n"
 
 
-def build_report(config: ReportConfig, root: Path = Path(".")) -> Path:
+def build_report(config: ReportConfig) -> Path:
+    """Write the report; every path in the config is relative to the working directory."""
     from rocketlander.cli.compare import record_race  # pygame is only needed for races
 
-    figure_dir = root / config.figures
+    figure_dir = Path(config.figures)
     figure_dir.mkdir(parents=True, exist_ok=True)
     table = success_table(config)
     figures = {}
@@ -273,7 +279,7 @@ def build_report(config: ReportConfig, root: Path = Path(".")) -> Path:
             labels=race.agents,
         )
         figures[f"race {race.level}, seed {race.seed}"] = f"{config.figures}/{name}"
-    out = root / config.out
+    out = Path(config.out)
     kept = kept_lessons(out.read_text() if out.exists() else "", out)
     out.write_text(markdown(config, table, figures, kept))
     return out

@@ -9,6 +9,7 @@ from pathlib import Path
 import numpy as np
 
 from rocketlander.agents.base import Agent
+from rocketlander.agents.mpc import MPCAgent
 from rocketlander.agents.pid import PIDAgent
 from rocketlander.agents.random_agent import RandomAgent
 from rocketlander.common.checkpoint import load_checkpoint
@@ -16,7 +17,7 @@ from rocketlander.envs.levels import available_levels
 from rocketlander.envs.rocket_env import RocketLanderEnv
 from rocketlander.render.renderer import Renderer
 
-AGENTS: dict[str, Callable[[], Agent]] = {"pid": PIDAgent, "random": RandomAgent}
+AGENTS: dict[str, Callable[[], Agent]] = {"pid": PIDAgent, "random": RandomAgent, "mpc": MPCAgent}
 
 
 def make_agent(name: str) -> Agent:

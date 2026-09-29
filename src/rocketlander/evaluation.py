@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from rocketlander.agents.base import Agent
+from rocketlander.agents.base import Agent, start_episode
 from rocketlander.envs.levels import LevelConfig
 from rocketlander.envs.rocket_env import RocketLanderEnv
 from rocketlander.stats import wilson_interval
@@ -38,6 +38,7 @@ def evaluate(agent: Agent, level: str | LevelConfig, seeds: list[int]) -> EvalSu
     landed = 0
     for seed in seeds:
         obs, _ = env.reset(seed=seed)
+        start_episode(agent)
         episode_return, done = 0.0, False
         while not done:
             obs, _, terminated, truncated, info = env.step(agent.act(obs, deterministic=True))
