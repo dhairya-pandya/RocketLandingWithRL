@@ -102,3 +102,8 @@ def test_body_to_world_rotates_counter_clockwise():
 def test_decode_action_rejects_malformed_actions(bad):
     with pytest.raises(ValueError, match="action must"):
         decode_action(bad, RocketParams())
+
+
+def test_leg_clearance_is_the_distance_from_centre_to_leg_tips():
+    params = RocketParams()
+    assert params.leg_clearance == params.length / 2 + params.leg_drop == 11.0

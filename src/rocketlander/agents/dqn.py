@@ -95,6 +95,7 @@ class DQNAgent(nn.Module):
 
     @torch.no_grad()
     def value(self, obs: np.ndarray) -> float:
+        """max_a Q(s, a) for one observation (the viewer's V(s) plot)."""
         return float(self.q(self.normalized(obs)).max())
 
     def architecture(self) -> dict:
@@ -122,8 +123,8 @@ def train_dqn(
         progress = min(1.0, explored / config.epsilon_decay_steps)
         epsilon = config.epsilon_start + progress * (config.epsilon_end - config.epsilon_start)
         greedy = agent.q(obs).argmax(dim=1).numpy()
-        random = rng.integers(len(ACTIONS), size=len(obs))
-        return ACTIONS[np.where(rng.random(len(obs)) < epsilon, random, greedy)]
+        random_actions = rng.integers(len(ACTIONS), size=len(obs))
+        return ACTIONS[np.where(rng.random(len(obs)) < epsilon, random_actions, greedy)]
 
     def update(batch: dict) -> dict[str, float]:
         o, o2 = agent.normalized(batch["obs"]), agent.normalized(batch["next_obs"])

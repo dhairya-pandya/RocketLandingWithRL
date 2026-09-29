@@ -1,4 +1,4 @@
-"""Training loop shared by the off-policy agents (SAC, TD3): act, store, replay, update."""
+"""Training loop shared by the off-policy agents (SAC, TD3, DQN): act, store, replay, update."""
 
 from __future__ import annotations
 
