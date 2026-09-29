@@ -3,7 +3,8 @@
 The rocket's three continuous controls are cut into 5 throttle x 5 gimbal x 3 RCS levels, so a
 Q-network can score all 75 actions at once and act greedily, like DQN on Atari. The levels are
 dense near hovering: a uniform grid cannot hold a gentle descent, and the PID snapped to it never
-lands; snapped to this grid it lands as often as the continuous PID.
+lands; snapped to this grid it lands about as often as the continuous PID (100 / 96 / 94 / 40% on
+L0-L3, against 100 / 100 / 98 / 45%).
 """
 
 from __future__ import annotations

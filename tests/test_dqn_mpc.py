@@ -104,3 +104,12 @@ def test_dqn_learns_to_land_on_l0(tmp_path):
 @pytest.mark.slow
 def test_mpc_lands_on_l0():
     assert evaluate(MPCAgent(), "L0", EVAL_SEEDS[:5]).success_rate >= 0.8
+
+
+def test_mpc_scores_an_episode_the_same_whatever_ran_before():
+    config = MPCConfig(candidates=8, elites=2, iterations=1)
+    alone = evaluate(MPCAgent(config), "L0", [EVAL_SEEDS[0]])
+    reused = MPCAgent(config)
+    evaluate(reused, "L0", [EVAL_SEEDS[1]])
+    after = evaluate(reused, "L0", [EVAL_SEEDS[0]])
+    assert after.mean_task_return == alone.mean_task_return

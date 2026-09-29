@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import pygame
 
+from rocketlander.agents.base import start_episode
 from rocketlander.cli.common import agent_argument, base_parser, make_agent, step_and_draw
 from rocketlander.envs.rocket_env import RocketLanderEnv
 from rocketlander.render.renderer import Renderer
@@ -25,6 +26,7 @@ def main(argv: list[str] | None = None) -> None:
     frames = 0
     for episode in range(args.episodes):
         obs, _ = env.reset(seed=args.seed + episode)
+        start_episode(agent)
         done, paused, hold = False, False, 0
         while hold < HOLD_SECONDS * 30:
             if args.max_frames is not None and frames >= args.max_frames:

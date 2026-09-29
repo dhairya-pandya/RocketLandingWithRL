@@ -64,6 +64,10 @@ class MPCAgent:
     def __init__(self, config: MPCConfig | None = None) -> None:
         self.config = config or load_config(MPCConfig, "mpc")
         self.params, self.bounds = RocketParams(), Bounds()
+        self.reset()
+
+    def reset(self) -> None:
+        """Forget the last episode's plan, so every episode is planned the same way."""
         self.rng = np.random.default_rng(self.config.seed)
         self.mean = np.zeros((self.config.knots, 3))
         self.plan, self.steps = self.mean, 0
