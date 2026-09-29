@@ -22,7 +22,7 @@ Success rate on 100 held-out start states per level (seeds 10000–10099, never 
 |---|---|---|---|---|---|
 | Random | 0% | 0% | 0% | 0% | 0% |
 | PID (hand-written) | 100% | 100% | 98% | 45% | 45% |
-| MPC planner (no learning) | 77% | 63% | 48% | 27% | 14% |
+| MPC planner (no learning) | 85% | 57% | 48% | 34% | 14% |
 | PPO, trained on L0 | 97% | 52% | 0% | 0% | 0% |
 | PPO, trained on L1 | 42% | 97% | 0% | 0% | 0% |
 | PPO, trained on L2 | 46% | 85% | 94% | 55% | 10% |
@@ -106,9 +106,9 @@ steps of noisy PID demonstrations in their replay buffer (see below). The checkp
 - **Two stretch agents, for contrast.** The **MPC planner** (`--agent mpc`) learns nothing: every 5
   steps it searches, with the cross-entropy method, for the best next second of actions in a nominal
   model decoded from the observation (nominal mass and thrust, no wind, a deck that stands still),
-  at about real time on one core. It lands 77% of L0 starts with the softest touchdowns of any agent
-  (0.03 m/s on L0, against 0.33 for PPO and 1.36 for the PID), and fails exactly where its model is
-  wrong: the swaying ship and the wind (27% on L3). **DQN** chooses among 75 discrete actions (5
+  at about real time on one core. It lands 85% of L0 starts with the softest touchdowns of any agent
+  (0.02 m/s on L0, against 0.33 for PPO and 1.36 for the PID), and fails exactly where its model is
+  wrong: the swaying ship and the wind (34% on L3). **DQN** chooses among 75 discrete actions (5
   throttle × 5 gimbal × 3 RCS levels). The grid needs levels packed near hover (on a uniform grid
   even the PID, snapped to it, never lands), and a flat 75-output Q-network never landed at all: its
   greedy `max` picked actions it had barely tried. A branched network, `Q = V(s) + A_throttle +
