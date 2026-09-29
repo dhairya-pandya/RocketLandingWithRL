@@ -219,7 +219,7 @@ uv run rl-compare --report results.yaml     # rebuilds RESULTS.md and media/resu
 Every agent flies the same start state, ship motion and wind, drawn as colour-coded rockets with
 their trails and a live legend; a rocket that lands rides along with the deck. Space pauses, N
 starts the next seed. The report evaluates every agent listed in `results.yaml` on every level in
-parallel processes, plots learning curves from `runs/<name>/metrics.csv` when those exist, and keeps
+parallel processes, plots learning curves from each agent's `run:` directory when it exists, and keeps
 the "Lessons learned" section of RESULTS.md when it is rebuilt.
 
 ![PID, PPO, ES and SAC flying the same windy start (level L3)](media/results/race_L3_seed4.gif)

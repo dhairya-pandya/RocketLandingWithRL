@@ -22,7 +22,7 @@ PANEL = (10, 14, 30, 170)
 BAR_BG = (60, 66, 90)
 
 
-def _panel(surface: pygame.Surface, rect: pygame.Rect) -> None:
+def panel(surface: pygame.Surface, rect: pygame.Rect) -> None:
     overlay = pygame.Surface(rect.size, pygame.SRCALPHA)
     overlay.fill(PANEL)
     surface.blit(overlay, rect.topleft)
@@ -55,7 +55,7 @@ class Hud:
         v_rel, h_rel = r.vy - d.vy, r.vx - d.vx
         tilt = r.theta - d.angle
 
-        _panel(surface, pygame.Rect(10, 10, 230, 230))
+        panel(surface, pygame.Rect(10, 10, 230, 230))
         rows = [
             ("ALTITUDE", f"{altitude:7.1f} m", None),
             ("VERT SPEED", f"{v_rel:7.1f} m/s", abs(v_rel) <= MAX_VERTICAL_SPEED),
@@ -83,7 +83,7 @@ class Hud:
 
     def _draw_wind(self, surface: pygame.Surface, wind: float) -> None:
         x = surface.get_width() - 170
-        _panel(surface, pygame.Rect(x, 10, 160, 50))
+        panel(surface, pygame.Rect(x, 10, 160, 50))
         self._text(surface, f"WIND {wind:+5.1f} m/s", (x + 10, 16))
         mid, y = x + 80, 44
         end = mid + int(np.clip(wind / 10.0, -1, 1) * 60)
@@ -105,7 +105,7 @@ class Hud:
             return
         w, h = surface.get_size()
         top = 44
-        _panel(surface, pygame.Rect(w // 2 - 220, top, 440, 100))
+        panel(surface, pygame.Rect(w // 2 - 220, top, 440, 100))
         text = self.big.render(title, True, color)
         surface.blit(text, (w // 2 - text.get_width() // 2, top + 12))
         sub = self.font.render(detail, True, TEXT)

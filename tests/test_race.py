@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from rocketlander.agents.pid import PIDAgent
 from rocketlander.agents.random_agent import RandomAgent
@@ -95,3 +96,9 @@ def test_finished_racers_that_did_not_land_are_dimmed():
     landed, failed = race.racers
     assert display_color(landed) == landed.color
     assert display_color(failed) != failed.color
+
+
+def test_compare_cli_without_a_mode_is_a_usage_error(capsys):
+    with pytest.raises(SystemExit):
+        compare.main(["--agent", "pid"])
+    assert "--viewer" in capsys.readouterr().err
