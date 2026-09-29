@@ -1,4 +1,6 @@
 import numpy as np
+import pytest
+import yaml
 
 from rocketlander.cli import evaluate, record, train, watch
 from rocketlander.cli.common import make_agent
@@ -58,3 +60,40 @@ def test_train_an_off_policy_agent_from_the_command_line(tmp_path):
     )
     assert (run_dir / "model.pt").exists()
     assert make_agent(str(run_dir / "model.pt")).act(np.zeros(11, dtype=np.float32)).shape == (3,)
+
+
+def test_train_cli_overrides_config_values(tmp_path):
+    run = tmp_path / "run"
+    train.main(
+        [
+            "--algo",
+            "ppo",
+            "--level",
+            "L0",
+            "--total-steps",
+            "2048",
+            "--run-dir",
+            str(run),
+            "--set",
+            "ent_coef=0.003",
+            "--set",
+            "num_envs=2",
+            "--set",
+            "num_steps=64",
+            "--set",
+            "num_minibatches=4",
+            "--set",
+            "hidden=[16, 16]",
+            "--quiet",
+        ]
+    )
+    written = yaml.safe_load((run / "config.yaml").read_text())
+    assert written["ent_coef"] == 0.003 and written["hidden"] == [16, 16]
+
+
+@pytest.mark.parametrize("bad", ["entropy=0.1", "ent_coef"])
+def test_train_cli_rejects_unknown_or_malformed_overrides(bad, tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        train.main(["--set", bad, "--run-dir", str(tmp_path / "run")])
+    err = capsys.readouterr().err
+    assert "--set" in err and "KEY=VALUE" in err and not (tmp_path / "run").exists()

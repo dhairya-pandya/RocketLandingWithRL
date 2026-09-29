@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from dataclasses import fields
 from pathlib import Path
 
 import torch
@@ -24,6 +25,13 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--init", type=Path, default=None, help="checkpoint to fine-tune from")
     parser.add_argument("--run-dir", type=Path, default=None)
     parser.add_argument("--quiet", action="store_true")
+    parser.add_argument(
+        "--set",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="override one YAML value, e.g. --set ent_coef=0.003 (repeatable)",
+    )
     args = parser.parse_args(argv)
 
     torch.set_num_threads(1)  # small networks: one thread is fastest and leaves cores free
@@ -35,6 +43,12 @@ def main(argv: list[str] | None = None) -> None:
     if schedule is not None and not algo.level_schedules:
         parser.error(f"{args.algo} trains on a single level, not {args.level!r}")
     overrides = {"total_steps": args.total_steps} if args.total_steps else {}
+    known = {f.name for f in fields(algo.config_cls)}
+    for item in args.set:
+        key, sep, value = item.partition("=")
+        if not sep or key not in known:
+            parser.error(f"--set {item!r}: expected KEY=VALUE with KEY one of {sorted(known)}")
+        overrides[key] = yaml.safe_load(value)  # typed like YAML: 0.003, 4, [128, 128], true
     config = load_config(algo.config_cls, args.algo, overrides)
     name = args.level.replace(":", "_").replace(",", "")
     run_dir = args.run_dir or Path("runs") / f"{args.algo}_{name}_s{args.seed}"
