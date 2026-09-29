@@ -33,6 +33,7 @@ CRASH_PENALTY = -100.0
 DECK_CRASH_BASE = 20.0
 DECK_CRASH_PER_MS = 8.0
 OBS_SIZE = 11
+ACT_SIZE = 3  # throttle, gimbal, RCS
 FUEL_SCALE = 1_000.0  # observation reports fuel remaining in tonnes
 
 
