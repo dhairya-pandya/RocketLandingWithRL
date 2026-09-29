@@ -3,8 +3,9 @@
 Every `hold` steps the planner runs the cross-entropy method over `knots` actions, each held for
 `hold` steps, in a *nominal* model built from the observation alone: nominal mass and thrust, no
 wind, a deck that does not move. Like the PID, it is only as good as that model. A plan is scored
-by the env's own rewards, plus, where the horizon ends mid-air, a penalty for moving faster than
-the rocket could still brake from (without it, a 1 s plan prefers hovering to descending).
+like the env's task reward (time and fuel costs per step, the terminal reward when the episode
+would end), plus, where the horizon ends mid-air, a penalty for moving faster than the rocket could
+still brake from (without it, a 1 s plan prefers hovering to descending).
 """
 
 from __future__ import annotations
@@ -25,8 +26,6 @@ from rocketlander.envs.rocket_env import (
     terminal_reward,
 )
 from rocketlander.envs.ship import DeckState, ShipMotion
-
-LEG_CLEARANCE = 11.0  # centre of mass to leg tips
 
 
 @dataclass
@@ -103,7 +102,7 @@ class MPCAgent:
                     if judgement.done:
                         return total + terminal_reward(judgement)
                 total -= TIME_COST + FUEL_COST * controls.throttle
-        altitude = max(rocket.y - LEG_CLEARANCE, 0.0)
+        altitude = max(rocket.y - self.params.leg_clearance, 0.0)
         safe_speed = 1.0 + np.sqrt(2.0 * self.config.braking * altitude)
         speed = np.hypot(rocket.vx, rocket.vy)
         tilt = abs(rocket.theta - deck.angle)

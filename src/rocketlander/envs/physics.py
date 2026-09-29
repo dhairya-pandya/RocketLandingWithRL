@@ -26,6 +26,11 @@ class RocketParams:
     drag_y: float = 50.0
     engine_lag: float = 0.0  # throttle time constant (s)
 
+    @property
+    def leg_clearance(self) -> float:
+        """Distance from the centre of mass down to the leg tips."""
+        return self.length / 2.0 + self.leg_drop
+
     def moment_of_inertia(self, mass: float) -> float:
         return mass * self.length**2 / 12.0
 
