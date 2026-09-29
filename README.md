@@ -103,18 +103,19 @@ steps of noisy PID demonstrations in their replay buffer (see below). The checkp
   them. That is where on-policy PPO's steady exploration wins. SAC and TD3 use γ = 0.99: the
   demonstrations supply the long-range signal, and 0.995 scored worse in prototyping.
 
-- **Two stretch agents, for contrast.** The **MPC planner** (`--agent mpc`) learns nothing: every
-  5 steps it searches, with the cross-entropy method, for the best next second of actions in a
-  nominal model decoded from the observation (nominal mass and thrust, no wind, a deck that stands
-  still), at about real time on one core. It lands 77% of L0 starts with the softest touchdowns of
-  any agent (0.03 m/s on L0, against 0.33 for PPO and 1.36 for the PID), and fails exactly where its model is wrong: the swaying ship and the wind (27% on
-  L3). **DQN** chooses among 75 discrete actions (5 throttle × 5 gimbal × 3 RCS levels). The grid
-  needs levels packed near hover (on a uniform grid even the PID, snapped to it, never lands), and a
-  flat 75-output Q-network never landed at all: its greedy `max` picked actions it had barely tried.
-  A branched network, `Q = V(s) + A_throttle + A_gimbal + A_rcs`, slow target updates and almost no
-  random actions reach 47% on L0 (seeds 2 and 3: 29% and 22%), but almost nothing once the deck
-  moves (8% on L1 for that agent, at most 1% for agents trained on L1–L4). An actor that outputs a
-  continuous action (SAC, PPO) is the better fit for this task.
+- **Two stretch agents, for contrast.** The **MPC planner** (`--agent mpc`) learns nothing: every 5
+  steps it searches, with the cross-entropy method, for the best next second of actions in a nominal
+  model decoded from the observation (nominal mass and thrust, no wind, a deck that stands still),
+  at about real time on one core. It lands 77% of L0 starts with the softest touchdowns of any agent
+  (0.03 m/s on L0, against 0.33 for PPO and 1.36 for the PID), and fails exactly where its model is
+  wrong: the swaying ship and the wind (27% on L3). **DQN** chooses among 75 discrete actions (5
+  throttle × 5 gimbal × 3 RCS levels). The grid needs levels packed near hover (on a uniform grid
+  even the PID, snapped to it, never lands), and a flat 75-output Q-network never landed at all: its
+  greedy `max` picked actions it had barely tried. A branched network, `Q = V(s) + A_throttle +
+  A_gimbal + A_rcs`, slow target updates and almost no random actions reach 47% on L0 (seeds 2 and
+  3: 29% and 22%), but almost nothing once the deck moves (8% on L1 for that agent, at most 1% for
+  agents trained on L1–L4). An actor that outputs a continuous action (SAC, PPO) is the better fit
+  for this task.
 
 ![A PPO agent landing in a 7.7 m/s crosswind (level L3)](media/ppo_landing_L3_wind.gif)
 
