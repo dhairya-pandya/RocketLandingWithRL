@@ -36,6 +36,20 @@ OBS_SIZE = 11
 FUEL_SCALE = 1_000.0  # observation reports fuel remaining in tonnes
 
 
+def terminal_reward(judgement: Judgement) -> float:
+    """Reward for how an episode ended (0 while still in flight)."""
+    if judgement.outcome is Outcome.LANDED:
+        softness = 1.0 - judgement.touchdown_speed / 2.0
+        return LANDING_REWARD + SOFTNESS_BONUS * softness
+    if judgement.outcome is Outcome.CRASHED and judgement.reason != "missed the ship":
+        # Graded by impact speed: "almost landed" must beat "fell out of the sky".
+        penalty = DECK_CRASH_BASE + DECK_CRASH_PER_MS * judgement.touchdown_speed
+        return max(CRASH_PENALTY, -penalty)
+    if judgement.outcome in (Outcome.CRASHED, Outcome.FAILED):
+        return CRASH_PENALTY
+    return 0.0
+
+
 @dataclass
 class EnvState:
     """Everything needed to restore the env exactly, including the RNG."""
@@ -147,7 +161,7 @@ class RocketLanderEnv(gym.Env):
 
         terminated = judgement.done
         truncated = not terminated and s.steps >= self.max_steps
-        terminal = self._terminal_reward(judgement)
+        terminal = terminal_reward(judgement)
         task_reward = terminal - FUEL_COST * controls.throttle - TIME_COST
         if self.reward_mode == "sparse":
             reward = terminal
@@ -253,19 +267,6 @@ class RocketLanderEnv(gym.Env):
         speed = np.hypot(rocket.vx - deck.vx, rocket.vy - deck.vy)
         tilt = abs(rocket.theta - deck.angle)
         return -(0.5 * distance + 2.0 * speed + 30.0 * tilt)
-
-    @staticmethod
-    def _terminal_reward(judgement: Judgement) -> float:
-        if judgement.outcome is Outcome.LANDED:
-            softness = 1.0 - judgement.touchdown_speed / 2.0
-            return LANDING_REWARD + SOFTNESS_BONUS * softness
-        if judgement.outcome is Outcome.CRASHED and judgement.reason != "missed the ship":
-            # Graded by impact speed: "almost landed" must beat "fell out of the sky".
-            penalty = DECK_CRASH_BASE + DECK_CRASH_PER_MS * judgement.touchdown_speed
-            return max(CRASH_PENALTY, -penalty)
-        if judgement.outcome in (Outcome.CRASHED, Outcome.FAILED):
-            return CRASH_PENALTY
-        return 0.0
 
     def _shaping(self, judgement: Judgement) -> float:
         """Progress reward gamma * phi(s') - phi(s). phi is kept at touchdown (not zeroed), so the

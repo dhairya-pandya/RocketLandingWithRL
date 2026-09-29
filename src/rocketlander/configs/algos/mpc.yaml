@@ -1,0 +1,10 @@
+# Model-predictive control settings (see rocketlander/agents/mpc.py). Nothing is trained.
+knots: 6
+hold: 5
+candidates: 48
+elites: 6
+iterations: 3
+init_std: 0.5
+min_std: 0.05
+braking: 4.0
+seed: 0
