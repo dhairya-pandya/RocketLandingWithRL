@@ -1,0 +1,276 @@
+{
+ "schemaVersion": 1,
+ "levels": [
+  {
+   "level": "L0",
+   "description": "Static pad, no wind, start close above",
+   "missions": 8,
+   "agents": [
+    {
+     "id": "es",
+     "name": "Fulmar"
+    },
+    {
+     "id": "ppo",
+     "name": "Gannet"
+    },
+    {
+     "id": "grpo",
+     "name": "Kittiwake"
+    },
+    {
+     "id": "sac",
+     "name": "Skua"
+    },
+    {
+     "id": "ppo-mix-entropy",
+     "name": "Albatross"
+    },
+    {
+     "id": "pid",
+     "name": "Osprey"
+    },
+    {
+     "id": "ppo-l3",
+     "name": "Petrel"
+    },
+    {
+     "id": "ppo-curriculum",
+     "name": "Shearwater"
+    },
+    {
+     "id": "mpc",
+     "name": "Frigatebird"
+    },
+    {
+     "id": "reinforce",
+     "name": "Puffin"
+    },
+    {
+     "id": "td3",
+     "name": "Tern"
+    },
+    {
+     "id": "dqn",
+     "name": "Cormorant"
+    }
+   ]
+  },
+  {
+   "level": "L1",
+   "description": "Ship sways and drifts sideways",
+   "missions": 8,
+   "agents": [
+    {
+     "id": "ppo",
+     "name": "Gannet"
+    },
+    {
+     "id": "es",
+     "name": "Fulmar"
+    },
+    {
+     "id": "ppo-l3",
+     "name": "Petrel"
+    },
+    {
+     "id": "ppo-mix-entropy",
+     "name": "Albatross"
+    },
+    {
+     "id": "pid",
+     "name": "Osprey"
+    },
+    {
+     "id": "ppo-curriculum",
+     "name": "Shearwater"
+    },
+    {
+     "id": "grpo",
+     "name": "Kittiwake"
+    },
+    {
+     "id": "sac",
+     "name": "Skua"
+    },
+    {
+     "id": "mpc",
+     "name": "Frigatebird"
+    },
+    {
+     "id": "td3",
+     "name": "Tern"
+    },
+    {
+     "id": "reinforce",
+     "name": "Puffin"
+    },
+    {
+     "id": "dqn",
+     "name": "Cormorant"
+    }
+   ]
+  },
+  {
+   "level": "L2",
+   "description": "Ship also rolls and heaves",
+   "missions": 8,
+   "agents": [
+    {
+     "id": "ppo-l3",
+     "name": "Petrel"
+    },
+    {
+     "id": "es",
+     "name": "Fulmar"
+    },
+    {
+     "id": "ppo-mix-entropy",
+     "name": "Albatross"
+    },
+    {
+     "id": "pid",
+     "name": "Osprey"
+    },
+    {
+     "id": "ppo-curriculum",
+     "name": "Shearwater"
+    },
+    {
+     "id": "grpo",
+     "name": "Kittiwake"
+    },
+    {
+     "id": "ppo",
+     "name": "Gannet"
+    },
+    {
+     "id": "td3",
+     "name": "Tern"
+    },
+    {
+     "id": "mpc",
+     "name": "Frigatebird"
+    },
+    {
+     "id": "reinforce",
+     "name": "Puffin"
+    },
+    {
+     "id": "sac",
+     "name": "Skua"
+    },
+    {
+     "id": "dqn",
+     "name": "Cormorant"
+    }
+   ]
+  },
+  {
+   "level": "L3",
+   "description": "Wind gusts and randomized rocket physics",
+   "missions": 8,
+   "agents": [
+    {
+     "id": "ppo-l3",
+     "name": "Petrel"
+    },
+    {
+     "id": "ppo-mix-entropy",
+     "name": "Albatross"
+    },
+    {
+     "id": "ppo-curriculum",
+     "name": "Shearwater"
+    },
+    {
+     "id": "es",
+     "name": "Fulmar"
+    },
+    {
+     "id": "grpo",
+     "name": "Kittiwake"
+    },
+    {
+     "id": "pid",
+     "name": "Osprey"
+    },
+    {
+     "id": "mpc",
+     "name": "Frigatebird"
+    },
+    {
+     "id": "reinforce",
+     "name": "Puffin"
+    },
+    {
+     "id": "dqn",
+     "name": "Cormorant"
+    },
+    {
+     "id": "td3",
+     "name": "Tern"
+    },
+    {
+     "id": "sac",
+     "name": "Skua"
+    }
+   ]
+  },
+  {
+   "level": "L4",
+   "description": "Booster return: far start at high speed",
+   "missions": 8,
+   "agents": [
+    {
+     "id": "ppo-mix-entropy",
+     "name": "Albatross"
+    },
+    {
+     "id": "ppo",
+     "name": "Gannet"
+    },
+    {
+     "id": "ppo-curriculum",
+     "name": "Shearwater"
+    },
+    {
+     "id": "ppo-l3",
+     "name": "Petrel"
+    },
+    {
+     "id": "pid",
+     "name": "Osprey"
+    },
+    {
+     "id": "es",
+     "name": "Fulmar"
+    },
+    {
+     "id": "grpo",
+     "name": "Kittiwake"
+    },
+    {
+     "id": "reinforce",
+     "name": "Puffin"
+    },
+    {
+     "id": "mpc",
+     "name": "Frigatebird"
+    },
+    {
+     "id": "dqn",
+     "name": "Cormorant"
+    },
+    {
+     "id": "td3",
+     "name": "Tern"
+    },
+    {
+     "id": "sac",
+     "name": "Skua"
+    }
+   ]
+  }
+ ]
+}
