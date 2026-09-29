@@ -251,6 +251,27 @@ The mini-plots show the agent's actions, its reward per step and, for agents wit
 value estimate V(s). Any script can also render through Gymnasium:
 `RocketLanderEnv(level="L2", render_mode="human")` or `render_mode="rgb_array"`.
 
+## Play in the browser
+
+`web/` is a browser game (Vite + TypeScript, no backend): fly the rocket yourself and race the
+trained agents as ghost rockets on the same mission (same start, ship motion and wind), then see
+which ones you beat. Your record stays in your browser.
+
+```bash
+uv run rl-export-web                 # re-record every agent's flights into web/public/missions/
+npm --prefix web ci
+npm --prefix web run dev             # http://localhost:5173
+npm --prefix web test                # the TypeScript physics must match the Python env
+```
+
+The agents do not run in the browser. `rl-export-web` (configured in `web-export.yaml`) flies each
+of them on 8 held-out missions per level, with the wind rounded to mm/s and every action rounded to
+thousandths, and stores those actions. The browser re-simulates each ghost with a TypeScript port of
+the physics; tests replay every stored flight and require the Python outcome and score. In the game
+the agents fly under seabird callsigns (Albatross, Petrel, …); `web-export.yaml` says which is which. The
+repository root's `vercel.json` builds `web/` as a static site, so deploying is a matter of
+importing the repository in Vercel.
+
 ## Compare agents side by side
 
 ```bash
