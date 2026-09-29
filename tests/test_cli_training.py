@@ -97,3 +97,10 @@ def test_train_cli_rejects_unknown_or_malformed_overrides(bad, tmp_path, capsys)
         train.main(["--set", bad, "--run-dir", str(tmp_path / "run")])
     err = capsys.readouterr().err
     assert "--set" in err and "KEY=VALUE" in err and not (tmp_path / "run").exists()
+
+
+@pytest.mark.parametrize("bad", ["total_steps=1e7", "history=0", "hidden=wide", "anneal_lr=3"])
+def test_train_cli_rejects_overrides_of_the_wrong_type(bad, tmp_path, capsys):
+    with pytest.raises(SystemExit):
+        train.main(["--set", bad, "--run-dir", str(tmp_path / "run")])
+    assert "--set" in capsys.readouterr().err and not (tmp_path / "run").exists()

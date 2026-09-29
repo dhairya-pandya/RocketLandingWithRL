@@ -78,12 +78,13 @@ steps of noisy PID demonstrations in their replay buffer (see below). The checkp
   start (`--level mix:L0,L1,L2,L3,L4`) lands 100% on L0–L1 in each of four seeds, 81–99% on L2
   and 53–75% on L4. Trained on L4 alone, the same network lands 57% of booster returns but
   forgets how to land from a gentle start (0% on L0–L2). A curriculum that unlocks each level at 80%
-  success gave the best single runs (up to 100 / 100 / 100 / 75 / 74%) but stalled at L2 on one of
-  five seeds.
-- **L4 (far, fast booster return) is still the hardest.** At 10 M steps PPO reaches 57% (trained
-  on L4 alone) to 70% (IQM of the mix over seeds), against the PID's 45%. Fine-tuning the L2 agent
-  on L3 and L4 did worse than training from scratch (55% and 4%), because its exploration noise had
-  already collapsed.
+  success gave strong single runs (up to 100 / 100 / 100 / 75 / 74%) but stalled at L2 on one of
+  five seeds. Adding a small entropy bonus to the mix (`--set ent_coef=0.003`) made it the best
+  recipe so far: 71–85% on L4 across four seeds (see below).
+- **L4 (far, fast booster return) is still the hardest.** At 10 M steps PPO reaches 57% (trained on
+  L4 alone) to 76% (IQM of the mix with an entropy bonus over four seeds), against the PID's 45%.
+  Fine-tuning the L2 agent on L3 and L4 did worse than training from scratch (55% and 4%), because
+  its exploration noise had already collapsed.
 - **PPO beats REINFORCE everywhere beyond L0**, on the same network, normalization and step budget.
 - **GRPO needs no critic.** It restarts 8 rollouts from the same simulator snapshot and scores each
   against its siblings, the way LLM post-training scores several answers to one prompt. It comes
@@ -136,22 +137,25 @@ middle half of the runs) with a bootstrap 95% interval:
 | mix of L0–L4 | 4 | 100% | 100% | 94% | 62% | 53, 72, 75, 68% | 70% (53–75) |
 | mix + entropy bonus 0.003 | 4 | 100% | 98% | 96% | 72% | 76, 85, 71, 76% | **76% (71–85)** |
 
-On L4 alone the intervals overlap, so these recipes cannot be ranked there with this many seeds.
-The mix is clearly better overall: every one of its runs lands at least 53% on every level, while
-the L4-only runs forget the easy levels and one curriculum run stalled. The shipped checkpoints
-are the seed-1 runs, so no lucky seed was picked.
+On L4, the first three recipes' intervals overlap, so they cannot be ranked there with this many
+seeds; the mix with an entropy bonus is separated from L4-only training (71–85% against 44–69%) but
+overlaps the plain mix (53–75%) and, by one point, the curriculum. Across all levels both mixes are
+clearly better: every one of their runs lands at least 53% on every level, while the L4-only runs
+forget the easy levels and one curriculum run stalled. The shipped checkpoints are the seed-1 runs,
+so no lucky seed was picked.
 
 **Memory did not help; exploration did.** L4 randomizes mass, thrust, engine lag and wind, none of
 which the policy observes, so a short memory looked like the fix: `--set history=4` feeds PPO its
 last 4 observations and actions, from which those hidden values could be inferred. It made things
 worse. Over three seeds each, the mix with a 4- or 8-step history landed 1–13% on L4 and 4–12% on
-L3, and history on L4 alone reached 3%. On L0 it learned *faster* (90% after 0.5 M steps against
-0%), but its exploration noise collapsed early and the hard levels were never learned. What did help
-was the opposite: keep exploring. A small entropy bonus (`--set ent_coef=0.003`) without memory
-raised the IQM over four seeds from 62% to 72% on L3 and from 70% to 76% on L4, and the worst seed
-on L4 from 53% to 71% (the intervals still overlap). Ten times more bonus (0.01) landed 78–91% on
-L3–L4 but forgot the gentle levels (0–70% on L0). With the same 0.003 bonus, memory still lagged (L4
-4–22%).
+L3, and one run with an 8-step history on L4 alone reached 3%. On L0 alone it learned *faster* (90%
+after 0.5 M steps against 0%) while its exploration noise shrank twice as fast (std 0.13 against
+0.27 at 3 M steps); on the mix the noise ended at 0.02 against 0.08, so we suspect the same early
+collapse kept the hard levels from being learned. What did help was the opposite: keep exploring. A
+small entropy bonus (`--set ent_coef=0.003`) without memory raised the IQM over four seeds from 62%
+to 72% on L3 and from 70% to 76% on L4, and the worst seed on L4 from 53% to 71% (the intervals
+still overlap). Ten times more bonus (0.01) landed 78–91% on L3–L4 but forgot the gentle levels
+(0–70% on L0). With the same 0.003 bonus, memory still lagged (L4 4–22%).
 
 **Robustness.** `rl-robust` pins one physical parameter to values beyond what the agent trained on
 and measures success again. On L2 (which has no wind and nominal physics), 50 episodes per value:

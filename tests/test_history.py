@@ -1,4 +1,5 @@
 import numpy as np
+import pytest
 
 from rocketlander.agents.ppo import PPOConfig, train_ppo
 from rocketlander.common.actor_critic import ActorCritic
@@ -101,3 +102,23 @@ def test_train_cli_can_switch_the_history_on(tmp_path):
         ]
     )
     assert load_checkpoint(run / "model.pt")[0].history == 4
+
+
+def test_train_cli_refuses_to_fine_tune_with_a_different_history(tmp_path, capsys):
+    from rocketlander.cli import train
+
+    save_checkpoint(
+        tmp_path / "h1.pt", ActorCritic([16], -0.5), "ppo", PPOConfig(), level="L0", seed=0
+    )
+    with pytest.raises(SystemExit):
+        train.main(
+            [
+                "--init",
+                str(tmp_path / "h1.pt"),
+                "--set",
+                "history=4",
+                "--run-dir",
+                str(tmp_path / "run"),
+            ]
+        )
+    assert "history" in capsys.readouterr().err and not (tmp_path / "run").exists()
