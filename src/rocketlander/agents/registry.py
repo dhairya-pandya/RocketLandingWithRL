@@ -6,6 +6,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
 
+from rocketlander.agents.dqn import DQNAgent, DQNConfig, train_dqn
 from rocketlander.agents.es import ESAgent, ESConfig, train_es
 from rocketlander.agents.grpo import GRPOConfig, train_grpo
 from rocketlander.agents.ppo import PPOConfig, train_ppo
@@ -29,6 +30,7 @@ ALGORITHMS: dict[str, Algorithm] = {
     "reinforce": Algorithm(ReinforceConfig, train_reinforce, ActorCritic),
     "sac": Algorithm(SACConfig, train_sac, SACAgent),
     "td3": Algorithm(TD3Config, train_td3, TD3Agent),
+    "dqn": Algorithm(DQNConfig, train_dqn, DQNAgent),
     "grpo": Algorithm(GRPOConfig, train_grpo, PolicyAgent, level_schedules=False),
     "es": Algorithm(ESConfig, train_es, ESAgent, level_schedules=False),
 }

@@ -1,0 +1,20 @@
+# DQN hyperparameters (see rocketlander/agents/dqn.py for meanings).
+total_steps: 2000000
+num_envs: 8
+buffer_size: 1000000
+batch_size: 256
+learning_starts: 50000
+updates_per_step: 2
+gamma: 0.99
+tau: 0.001
+learning_rate: 0.0001
+reward_scale: 0.1
+warmup_policy: pid
+warmup_noise: 0.3
+epsilon_start: 0.02
+epsilon_end: 0.005
+epsilon_decay_steps: 300000
+hidden: [128, 128]
+log_interval: 10000
+eval_interval: 100000
+eval_episodes: 20
