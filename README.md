@@ -6,7 +6,7 @@ on a laptop CPU, and compared against a hand-written PID controller.
 
 ![A PPO agent landing on the rolling drone ship (level L2)](media/ppo_landing_L2.gif)
 
-Status: **complete (Phase 8)**: environment, viewer, baselines, seven learning agents
+Status: **complete (Phase 9)**: environment, viewer, baselines, seven learning agents
 (REINFORCE, PPO, SAC, TD3, GRPO, evolution strategies, DQN) and a model-predictive planner, training
 on level mixes and curricula, an
 evaluation suite with confidence intervals and robustness sweeps, a side-by-side comparison viewer,
@@ -28,7 +28,8 @@ Success rate on 100 held-out start states per level (seeds 10000–10099, never 
 | PPO, trained on L2 | 46% | 85% | 94% | 55% | 10% |
 | **PPO, trained on L3** | **100%** | **99%** | **99%** | **95%** | 10% |
 | PPO, trained on L4 (10 M steps) | 0% | 0% | 0% | 8% | 57% |
-| **PPO, mix of L0–L4 (10 M steps)** | **100%** | **100%** | **96%** | 60% | 53% |
+| PPO, mix of L0–L4 (10 M steps) | 100% | 100% | 96% | 60% | 53% |
+| **PPO, mix of L0–L4 + entropy bonus (10 M steps)** | **100%** | **95%** | **91%** | **62%** | **76%** |
 | PPO, curriculum L0 → L4 (10 M steps) | 100% | 100% | 100% | 70% | 65% |
 | REINFORCE, trained on L0 | 100% | 87% | 0% | 0% | 0% |
 | REINFORCE, trained on L1 | 90% | 50% | 0% | 0% | 0% |
@@ -132,12 +133,25 @@ middle half of the runs) with a bootstrap 95% interval:
 |---|---|---|---|---|---|---|---|
 | L4 only | 3 | 1% | 17% | 15% | 13% | 57, 44, 69% | 57% (44–69) |
 | curriculum L0 → L4 | 5 | 100% | 100% | 98% | 62% | 65, 9, 74, 42, 69% | 59% (20–72) |
-| mix of L0–L4 | 4 | 100% | 100% | 94% | 62% | 53, 72, 75, 68% | **70% (53–75)** |
+| mix of L0–L4 | 4 | 100% | 100% | 94% | 62% | 53, 72, 75, 68% | 70% (53–75) |
+| mix + entropy bonus 0.003 | 4 | 100% | 98% | 96% | 72% | 76, 85, 71, 76% | **76% (71–85)** |
 
 On L4 alone the intervals overlap, so these recipes cannot be ranked there with this many seeds.
 The mix is clearly better overall: every one of its runs lands at least 53% on every level, while
 the L4-only runs forget the easy levels and one curriculum run stalled. The shipped checkpoints
 are the seed-1 runs, so no lucky seed was picked.
+
+**Memory did not help; exploration did.** L4 randomizes mass, thrust, engine lag and wind, none of
+which the policy observes, so a short memory looked like the fix: `--set history=4` feeds PPO its
+last 4 observations and actions, from which those hidden values could be inferred. It made things
+worse. Over three seeds each, the mix with a 4- or 8-step history landed 1–13% on L4 and 4–12% on
+L3, and history on L4 alone reached 3%. On L0 it learned *faster* (90% after 0.5 M steps against
+0%), but its exploration noise collapsed early and the hard levels were never learned. What did help
+was the opposite: keep exploring. A small entropy bonus (`--set ent_coef=0.003`) without memory
+raised the IQM over four seeds from 62% to 72% on L3 and from 70% to 76% on L4, and the worst seed
+on L4 from 53% to 71% (the intervals still overlap). Ten times more bonus (0.01) landed 78–91% on
+L3–L4 but forgot the gentle levels (0–70% on L0). With the same 0.003 bonus, memory still lagged (L4
+4–22%).
 
 **Robustness.** `rl-robust` pins one physical parameter to values beyond what the agent trained on
 and measures success again. On L2 (which has no wind and nominal physics), 50 episodes per value:
@@ -168,6 +182,7 @@ uv run rl-train --algo dqn --level L0 --seed 1          # discrete actions, ~12 
 uv run rl-eval --agent mpc --level L0 --episodes 20     # a planner: nothing to train
 uv run rl-train --algo ppo --level mix:L0,L1,L2,L3,L4 --total-steps 10000000
 uv run rl-train --algo ppo --level curriculum:L0,L1,L2,L3,L4 --total-steps 10000000
+uv run rl-train --algo ppo --level mix:L0,L1,L2,L3,L4 --total-steps 10000000 --set ent_coef=0.003
 uv run rl-eval --agent runs/ppo_L2_s1/model.pt --level L2
 uv run rl-eval --agent runs/ppo_mix_L0L1L2L3L4_s*/model.pt --level L4  # seeds of one recipe: IQM
 uv run rl-robust --agent checkpoints/ppo_L3.pt --level L2 --param wind_mean
@@ -181,7 +196,8 @@ episodes, keep sampling the unlocked ones); both evaluate on the last level list
 REINFORCE, SAC and TD3 support them. GRPO and ES train on one level. Robustness sweep values live
 in `src/rocketlander/configs/robustness.yaml`.
 
-Hyperparameters live in `src/rocketlander/configs/algos/<algo>.yaml`. `rl-train`
+Hyperparameters live in `src/rocketlander/configs/algos/<algo>.yaml`; `--set KEY=VALUE`
+overrides any of them for one run (e.g. `--set ent_coef=0.003 --set history=4`). `rl-train`
 logs to TensorBoard and `runs/<name>/metrics.csv`, evaluates on held-out seeds during training,
 and saves a checkpoint with its config and git commit.
 
