@@ -16,3 +16,4 @@ hidden: [64, 64]
 init_log_std: -0.5
 eval_interval: 500000
 eval_episodes: 20
+history: 1

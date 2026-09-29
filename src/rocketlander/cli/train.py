@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from dataclasses import fields
 from pathlib import Path
 
 import torch
@@ -24,6 +25,13 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--init", type=Path, default=None, help="checkpoint to fine-tune from")
     parser.add_argument("--run-dir", type=Path, default=None)
     parser.add_argument("--quiet", action="store_true")
+    parser.add_argument(
+        "--set",
+        action="append",
+        default=[],
+        metavar="KEY=VALUE",
+        help="override one YAML value, e.g. --set ent_coef=0.003 (repeatable)",
+    )
     args = parser.parse_args(argv)
 
     torch.set_num_threads(1)  # small networks: one thread is fastest and leaves cores free
@@ -35,11 +43,27 @@ def main(argv: list[str] | None = None) -> None:
     if schedule is not None and not algo.level_schedules:
         parser.error(f"{args.algo} trains on a single level, not {args.level!r}")
     overrides = {"total_steps": args.total_steps} if args.total_steps else {}
+    known = {f.name for f in fields(algo.config_cls)}
+    for item in args.set:
+        key, sep, value = item.partition("=")
+        if not sep or key not in known:
+            parser.error(f"--set {item!r}: expected KEY=VALUE with KEY one of {sorted(known)}")
+        overrides[key] = yaml.safe_load(value)  # typed like YAML: 0.003, 4, [128, 128], true
+        default = getattr(load_config(algo.config_cls, args.algo), key)
+        if not _same_type(overrides[key], default):
+            parser.error(f"--set {item!r}: expected {type(default).__name__}, like {default!r}")
     config = load_config(algo.config_cls, args.algo, overrides)
+    if getattr(config, "history", 1) < 1:
+        parser.error("--set history must be at least 1")
     name = args.level.replace(":", "_").replace(",", "")
     run_dir = args.run_dir or Path("runs") / f"{args.algo}_{name}_s{args.seed}"
     init_agent = load_checkpoint(args.init)[0] if args.init else None
     if init_agent is not None:
+        have, want = getattr(init_agent, "history", 1), getattr(config, "history", 1)
+        if have != want:
+            parser.error(
+                f"--init checkpoint has history {have}, the config {want}: add --set history={have}"
+            )
         init_agent.train()
         init_agent.obs_rms.soften(max_count=1e4)  # let the stats adapt to the new level
 
@@ -67,6 +91,15 @@ def main(argv: list[str] | None = None) -> None:
         f"over {summary.episodes} episodes. "
         f"Saved {run_dir / 'model.pt'}"
     )
+
+
+def _same_type(value, default) -> bool:
+    """A YAML value can replace a default of the same type (an int may replace a float)."""
+    if isinstance(default, bool) or isinstance(value, bool):
+        return type(value) is type(default)
+    if isinstance(default, float):
+        return isinstance(value, int | float)
+    return isinstance(value, type(default))
 
 
 if __name__ == "__main__":

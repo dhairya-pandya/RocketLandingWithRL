@@ -12,11 +12,12 @@ from torch import nn
 from rocketlander.common.actor_critic import ACT_SIZE, ActorCritic
 from rocketlander.common.curriculum import parse_level
 from rocketlander.common.gae import compute_gae
+from rocketlander.common.history import HistoryVecEnv, history_size
 from rocketlander.common.logger import Logger
 from rocketlander.common.normalization import RewardScaler
 from rocketlander.common.rollout_stats import RolloutStats
 from rocketlander.common.vec_env import VecEnv
-from rocketlander.envs.rocket_env import OBS_SIZE, RocketLanderEnv
+from rocketlander.envs.rocket_env import RocketLanderEnv
 from rocketlander.evaluation import eval_metrics
 
 
@@ -37,6 +38,7 @@ class PPOConfig:
     max_grad_norm: float = 0.5
     hidden: list[int] = field(default_factory=lambda: [64, 64])
     init_log_std: float = -0.5
+    history: int = 1  # >1: the policy sees its last observations and actions (common/history.py)
     eval_interval: int = 500_000
     eval_episodes: int = 20
 
@@ -45,16 +47,19 @@ def train_ppo(
     config: PPOConfig, level: str, seed: int, logger: Logger, agent: ActorCritic | None = None
 ) -> ActorCritic:
     torch.manual_seed(seed)
-    agent = agent or ActorCritic(config.hidden, config.init_log_std)
+    agent = agent or ActorCritic(config.hidden, config.init_log_std, config.history)
     optimizer = torch.optim.Adam(agent.parameters(), lr=config.learning_rate, eps=1e-5)
     eval_level, schedule = parse_level(level, seed)
     envs = VecEnv(lambda: RocketLanderEnv(level=eval_level), config.num_envs, seed, schedule)
+    if agent.history > 1:
+        envs = HistoryVecEnv(envs, agent.history)
+    obs_dim = history_size(agent.history)
     scaler = RewardScaler(config.num_envs, config.gamma)
     stats = RolloutStats(config.num_envs)
     n_steps, n_envs = config.num_steps, config.num_envs
     num_updates = max(1, config.total_steps // (n_steps * n_envs))
 
-    obs_buf = np.zeros((n_steps, n_envs, OBS_SIZE), dtype=np.float32)
+    obs_buf = np.zeros((n_steps, n_envs, obs_dim), dtype=np.float32)
     act_buf = np.zeros((n_steps, n_envs, ACT_SIZE), dtype=np.float32)
     logp_buf, rew_buf, val_buf, next_val_buf, done_buf = (
         np.zeros((n_steps, n_envs)) for _ in range(5)
@@ -104,7 +109,7 @@ def train_ppo(
 
 
 def _update(agent, optimizer, config, obs_buf, act_buf, logp_buf, advantages, returns) -> dict:
-    b_obs = agent.normalized(obs_buf.reshape(-1, OBS_SIZE))
+    b_obs = agent.normalized(obs_buf.reshape(-1, obs_buf.shape[-1]))
     b_act = torch.as_tensor(act_buf.reshape(-1, ACT_SIZE))
     b_logp = torch.as_tensor(logp_buf.reshape(-1), dtype=torch.float32)
     b_adv = torch.as_tensor(advantages.reshape(-1), dtype=torch.float32)

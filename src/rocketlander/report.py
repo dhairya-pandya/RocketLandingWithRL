@@ -36,9 +36,9 @@ ALGO_COLORS = {
 
 
 def line_style(agent: str) -> dict:
-    """One colour per algorithm (from the checkpoint name); mixes dashed, curricula dotted."""
+    """One colour per algorithm (from the checkpoint name); level mixes and curricula dashed."""
     algo, _, variant = Path(agent).stem.partition("_")
-    dashes = {"mix": "--", "curriculum": ":"}.get(variant, "-")
+    dashes = {"mix": "--", "curriculum": ":", "mix_entropy": "-."}.get(variant, "-")
     return {"color": ALGO_COLORS.get(algo, "tab:gray"), "linestyle": dashes}
 
 

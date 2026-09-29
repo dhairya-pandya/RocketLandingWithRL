@@ -20,6 +20,7 @@ agents:
   - {name: PPO on L3, agent: checkpoints/ppo_L3.pt, run: runs/all_ppo_L3, trained_on: L3}
   - {name: PPO on L4, agent: checkpoints/ppo_L4.pt, run: runs/phase6_ppo_L4, trained_on: L4}
   - {name: PPO mix L0-L4, agent: checkpoints/ppo_mix.pt, run: runs/final_ppo_mix, trained_on: L4}
+  - {name: PPO mix + entropy bonus, agent: checkpoints/ppo_mix_entropy.pt, run: runs/final_ppo_mix_entropy, trained_on: L4}
   - {name: PPO curriculum, agent: checkpoints/ppo_curriculum.pt, run: runs/final_ppo_curriculum, trained_on: L4}
   - {name: SAC on L0, agent: checkpoints/sac_L0.pt, run: runs/final_sac_L0, trained_on: L0}
   - {name: SAC on L1, agent: checkpoints/sac_L1.pt, run: runs/final_sac_L1, trained_on: L1}
