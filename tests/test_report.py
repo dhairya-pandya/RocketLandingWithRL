@@ -70,6 +70,7 @@ def test_line_style_colours_by_algorithm_and_dashes_level_mixes():
     assert line_style("checkpoints/ppo_mix.pt")["linestyle"] == "--"
     assert line_style("checkpoints/ppo_curriculum.pt")["linestyle"] == ":"
     assert line_style("pid")["color"] == "tab:gray"
+    assert line_style("checkpoints/dqn_L0.pt")["color"] == "tab:pink"
 
 
 def test_compare_cli_builds_a_report_from_yaml(tmp_path, monkeypatch, capsys):

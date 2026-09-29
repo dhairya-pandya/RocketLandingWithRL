@@ -31,6 +31,7 @@ ALGO_COLORS = {
     "td3": "tab:red",
     "grpo": "tab:purple",
     "es": "tab:brown",
+    "dqn": "tab:pink",
 }
 
 
