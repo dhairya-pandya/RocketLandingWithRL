@@ -268,9 +268,9 @@ The agents do not run in the browser. `rl-export-web` (configured in `web-export
 of them on 8 held-out missions per level, with the wind rounded to mm/s and every action rounded to
 thousandths, and stores those actions. The browser re-simulates each ghost with a TypeScript port of
 the physics; tests replay every stored flight and require the Python outcome and score. In the game
-the agents fly under seabird callsigns (Albatross, Petrel, …); `web-export.yaml` says which is which. The
-repository root's `vercel.json` builds `web/` as a static site, so deploying is a matter of
-importing the repository in Vercel.
+the agents fly under seabird callsigns (Albatross, Petrel, …); `web-export.yaml` says which is which.
+`web/vercel.json` builds the game as a static site: import the repository in Vercel with Root
+Directory set to `web`.
 
 ## Compare agents side by side
 
