@@ -1,0 +1,46 @@
+# What `uv run rl-export-web` puts into the web game (web/public/missions/<level>.json).
+# Pilots get friendly names; the comment says which agent each one is.
+# "{level}" in an agent path becomes the level's name; `levels` limits where an agent appears.
+out: web/public/missions
+fixtures: web/test/fixtures
+missions: 8
+levels: [L0, L1, L2, L3, L4]
+workers: 5
+agents:
+  - id: pid
+    name: Osprey  # PID controller
+    agent: pid
+  - id: mpc
+    name: Frigatebird  # MPC planner
+    agent: mpc
+  - id: ppo-mix-entropy
+    name: Albatross  # PPO trained on every level, entropy bonus
+    agent: checkpoints/ppo_mix_entropy.pt
+  - id: ppo-curriculum
+    name: Shearwater  # PPO trained with a curriculum
+    agent: checkpoints/ppo_curriculum.pt
+  - id: ppo-l3
+    name: Petrel  # PPO trained on L3
+    agent: checkpoints/ppo_L3.pt
+  - id: ppo
+    name: Gannet  # PPO trained on this level
+    agent: checkpoints/ppo_{level}.pt
+    levels: [L0, L1, L2, L4]
+  - id: sac
+    name: Skua  # SAC
+    agent: checkpoints/sac_{level}.pt
+  - id: td3
+    name: Tern  # TD3
+    agent: checkpoints/td3_{level}.pt
+  - id: grpo
+    name: Kittiwake  # GRPO
+    agent: checkpoints/grpo_{level}.pt
+  - id: es
+    name: Fulmar  # evolution strategies
+    agent: checkpoints/es_{level}.pt
+  - id: reinforce
+    name: Puffin  # REINFORCE
+    agent: checkpoints/reinforce_{level}.pt
+  - id: dqn
+    name: Cormorant  # DQN
+    agent: checkpoints/dqn_{level}.pt

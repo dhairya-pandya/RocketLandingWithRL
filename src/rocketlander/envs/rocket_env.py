@@ -62,6 +62,7 @@ class EnvState:
     steps: int
     potential: float
     rng_state: dict[str, Any]
+    wind_track: tuple[float, ...] | None = None  # a replayed wind speed per physics step
 
 
 @dataclass(frozen=True)
@@ -130,6 +131,7 @@ class RocketLanderEnv(gym.Env):
                 steps=0,
                 potential=self._potential(rocket, deck),
                 rng_state={},
+                wind_track=tuple(options["wind"]) if options and "wind" in options else None,
             )
             self._last_forces = None
             self._last_controls = None
@@ -148,8 +150,11 @@ class RocketLanderEnv(gym.Env):
         self._last_controls = controls
 
         judgement = Judgement(Outcome.IN_FLIGHT)
-        for _ in range(PHYSICS_STEPS_PER_ACTION):
+        for sub in range(PHYSICS_STEPS_PER_ACTION):
             s.wind = step_wind(s.wind, s.setup.wind_model, PHYSICS_DT, self.np_random)
+            if s.wind_track:  # replay a recorded wind instead (the web game's missions)
+                k = min(s.steps * PHYSICS_STEPS_PER_ACTION + sub, len(s.wind_track) - 1)
+                s.wind = replace(s.wind, speed=s.wind_track[k])
             s.rocket, self._last_forces = step_rocket(
                 s.rocket, controls, s.setup.params, s.wind.speed, PHYSICS_DT
             )
